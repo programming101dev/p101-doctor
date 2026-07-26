@@ -1,10 +1,16 @@
 #include "report.h"
+#include "constants.h"
 #include "status.h"
 #include <p101_c/p101_stdio.h>
+#include <p101_c/p101_string.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 static void        write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status);
 static const char *grade_for_status(int status);
+static void        write_observe_detail(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct doctor_paths *paths);
+static bool        read_observe_resource_line(const struct p101_env *env, struct p101_error *err, const struct doctor_paths *paths, char line[MSG_LEN]);
+static void        trim_newline(const struct p101_env *env, char *line);
 
 static const char *grade_for_status(int status)
 {
@@ -27,6 +33,74 @@ static const char *grade_for_status(int status)
 static void write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status)
 {
     p101_fprintf(env, err, stream, "- %s: `%s` (%s)\n", label, grade_for_status(status), p101_doctor_status_word(status));
+}
+
+static void write_observe_detail(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct doctor_paths *paths)
+{
+    char line[MSG_LEN];
+
+    if(read_observe_resource_line(env, err, paths, line))
+    {
+        p101_fprintf(env, err, stream, "- Observed resource counts: `%s`\n", line);
+    }
+    else
+    {
+        p101_fputs(env, err, "- Observed resource counts: unavailable; see observe artifacts.\n", stream);
+    }
+}
+
+static bool read_observe_resource_line(const struct p101_env *env, struct p101_error *err, const struct doctor_paths *paths, char line[MSG_LEN])
+{
+    FILE *stream;
+    char  path[PATH_LEN];
+    bool  found;
+
+    stream = NULL;
+    found  = false;
+    p101_snprintf(env, err, path, sizeof(path), "%s/summary.txt", paths->observe_dir);
+
+    if(p101_error_has_error(err))
+    {
+        goto done;
+    }
+
+    stream = p101_fopen(env, err, path, "r");
+
+    if(stream == NULL)
+    {
+        p101_error_reset(err);
+        goto done;
+    }
+
+    while(p101_error_has_no_error(err) && p101_fgets(env, err, line, MSG_LEN, stream) != NULL)
+    {
+        if(p101_strncmp(env, line, "resources:", sizeof("resources:") - 1U) == 0)
+        {
+            trim_newline(env, line);
+            found = true;
+            break;
+        }
+    }
+
+done:
+    if(stream != NULL)
+    {
+        p101_fclose(env, err, stream);
+    }
+
+    return found;
+}
+
+static void trim_newline(const struct p101_env *env, char *line)
+{
+    size_t length;
+
+    length = p101_strlen(env, line);
+    while(length > 0U && (line[length - 1U] == '\n' || line[length - 1U] == '\r'))
+    {
+        line[length - 1U] = '\0';
+        length--;
+    }
 }
 
 void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths, const struct doctor_result *result)
@@ -61,6 +135,8 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     write_grade_line(env, err, stream, "Module shape", result->module_status);
     write_grade_line(env, err, stream, "Runtime resources", result->observe_status);
     write_grade_line(env, err, stream, "Error paths", result->fault_walk_status);
+    p101_fputs(env, err, "\n", stream);
+    write_observe_detail(env, err, stream, paths);
     p101_fputs(env, err, "\n", stream);
 
     p101_fputs(env, err, "## Results\n\n", stream);
