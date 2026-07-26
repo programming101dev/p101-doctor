@@ -83,6 +83,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     args.source_path          = DEFAULT_SOURCE_PATH;
     args.fault_count_str      = DEFAULT_FAULT_COUNT;
     args.p101_wrapper_audit   = DEFAULT_WRAPPER_AUDIT;
+    args.p101_module_map      = DEFAULT_MODULE_MAP;
     args.p101_observe         = DEFAULT_OBSERVE_PATH;
     args.p101_error_path_walk = DEFAULT_ERROR_WALK_PATH;
     args.resource_tracker     = DEFAULT_TRACKER_PATH;

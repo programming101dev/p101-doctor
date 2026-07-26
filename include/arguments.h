@@ -15,6 +15,7 @@ struct arguments
     const char  *fault_count_str;
     unsigned int fault_count;
     const char  *p101_wrapper_audit;
+    const char  *p101_module_map;
     const char  *p101_observe;
     const char  *p101_error_path_walk;
     const char  *resource_tracker;
@@ -23,6 +24,7 @@ struct arguments
     char *const *command_argv;
     int          command_argc;
     bool         verbose;
+    bool         skip_wrapper_audit;
 };
 
 #endif    // P101_DOCTOR_ARGUMENTS_H
