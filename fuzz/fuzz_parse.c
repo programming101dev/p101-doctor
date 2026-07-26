@@ -1,7 +1,8 @@
 /*
  * libFuzzer harness for p101-doctor's argument parser.
  */
-#include <p101_c/p101_setjmp.h>
+#include "cli.h"
+#include "constants.h"
 #include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
 #include <setjmp.h>
@@ -9,15 +10,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static jmp_buf g_fuzz_exit_jmp;
 
-#include "../src/main.c"
-
 _Noreturn void p101_fuzz_exit(const struct p101_env *env, int code)
 {
+    (void)env;
     (void)code;
-    p101_longjmp(env, g_fuzz_exit_jmp, 1);
+    longjmp(g_fuzz_exit_jmp, 1);
 }
 
 #define FUZZ_MAX_ARGS 64
@@ -103,9 +104,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
     }
 
-    if(p101_setjmp(env, g_fuzz_exit_jmp) == 0)
+    if(setjmp(g_fuzz_exit_jmp) == 0)
     {
-        parse_arguments(env, err, argc, argv, &args);
+        p101_doctor_parse_arguments(env, err, argc, argv, &args);
+
+        if(p101_error_has_no_error(err))
+        {
+            p101_doctor_check_arguments(env, err, &args);
+        }
+
+        if(p101_error_has_no_error(err))
+        {
+            p101_doctor_convert_arguments(env, err, &args);
+        }
     }
 
 done:
