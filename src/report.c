@@ -3,6 +3,32 @@
 #include <p101_c/p101_stdio.h>
 #include <stdio.h>
 
+static void        write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status);
+static const char *grade_for_status(int status);
+
+static const char *grade_for_status(int status)
+{
+    const char *grade;
+
+    grade = "trouble";
+
+    if(p101_doctor_status_is_clean(status))
+    {
+        grade = "good";
+    }
+    else if(p101_doctor_status_has_findings(status))
+    {
+        grade = "needs work";
+    }
+
+    return grade;
+}
+
+static void write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status)
+{
+    p101_fprintf(env, err, stream, "- %s: `%s` (%s)\n", label, grade_for_status(status), p101_doctor_status_word(status));
+}
+
 void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths, const struct doctor_result *result)
 {
     FILE *stream;
@@ -26,6 +52,16 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
         p101_fprintf(env, err, stream, "Source path: `%s`\n\n", args->source_path);
     }
     p101_fprintf(env, err, stream, "Fault-injection cases requested: `%u`\n\n", args->fault_count);
+
+    p101_fputs(env, err, "## Quick grade\n\n", stream);
+    if(!args->skip_wrapper_audit)
+    {
+        write_grade_line(env, err, stream, "Wrapper usage", result->wrapper_status);
+    }
+    write_grade_line(env, err, stream, "Module shape", result->module_status);
+    write_grade_line(env, err, stream, "Runtime resources", result->observe_status);
+    write_grade_line(env, err, stream, "Error paths", result->fault_walk_status);
+    p101_fputs(env, err, "\n", stream);
 
     p101_fputs(env, err, "## Results\n\n", stream);
     p101_fputs(env, err, "| Step | Status |\n", stream);
@@ -58,6 +94,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     p101_fputs(env, err, "- Fault-walk stderr: [error-path-walk.stderr.txt](./error-path-walk.stderr.txt)\n", stream);
     p101_fputs(env, err, "- Fault-walk per-case logs: [fault-walk](./fault-walk/)\n", stream);
     p101_fputs(env, err, "- Machine-readable doctor index: [doctor.json](./doctor.json)\n", stream);
+    p101_fputs(env, err, "- Run manifest: [manifest.txt](./manifest.txt)\n", stream);
 
     p101_fputs(env, err, "\n## How to read this\n\n", stream);
     if(!args->skip_wrapper_audit)
@@ -100,6 +137,7 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     p101_fprintf(env, err, stream, "  \"source_path\": \"%s\",\n", args->source_path);
     p101_fprintf(env, err, stream, "  \"fault_count\": %u,\n", args->fault_count);
     p101_fprintf(env, err, stream, "  \"doctor_dir\": \"%s\",\n", paths->dir);
+    p101_fprintf(env, err, stream, "  \"manifest\": \"%s\",\n", paths->manifest);
     p101_fprintf(env, err, stream, "  \"module_report\": \"%s\",\n", paths->module_report);
     p101_fprintf(env, err, stream, "  \"observe_dir\": \"%s\",\n", paths->observe_dir);
     p101_fprintf(env, err, stream, "  \"fault_dir\": \"%s\",\n", paths->fault_dir);

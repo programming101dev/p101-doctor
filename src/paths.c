@@ -37,6 +37,7 @@ void p101_doctor_make_paths(const struct p101_env *env, struct p101_error *err, 
     join_path(env, err, paths->fault_stderr, paths->dir, "error-path-walk.stderr.txt");
     join_path(env, err, paths->summary, paths->dir, "summary.md");
     join_path(env, err, paths->json, paths->dir, "doctor.json");
+    join_path(env, err, paths->manifest, paths->dir, "manifest.txt");
     join_path(env, err, paths->fault_prefix, paths->fault_dir, "case");
 }
 
@@ -61,6 +62,45 @@ void p101_doctor_write_command_file(const struct p101_env *env, struct p101_erro
     for(size_t i = 0; command_argv[i] != NULL; i++)
     {
         p101_fprintf(env, err, stream, "%s%s", (i == 0U) ? "" : " ", command_argv[i]);
+    }
+
+    p101_fputc(env, err, '\n', stream);
+
+done:
+    if(stream != NULL)
+    {
+        p101_fclose(env, err, stream);
+    }
+}
+
+void p101_doctor_write_manifest_file(const struct p101_env *env, struct p101_error *err, const char *path, const struct arguments *args, const struct doctor_paths *paths)
+{
+    FILE *stream;
+
+    P101_TRACE(env);
+    stream = p101_fopen(env, err, path, "w");
+
+    if(stream == NULL)
+    {
+        goto done;
+    }
+
+    p101_fputs(env, err, "p101-doctor manifest\n", stream);
+    p101_fprintf(env, err, stream, "doctor_dir=%s\n", paths->dir);
+    p101_fprintf(env, err, stream, "source_path=%s\n", args->source_path);
+    p101_fprintf(env, err, stream, "fault_count=%u\n", args->fault_count);
+    p101_fprintf(env, err, stream, "p101_wrapper_audit=%s\n", args->p101_wrapper_audit);
+    p101_fprintf(env, err, stream, "p101_module_map=%s\n", args->p101_module_map);
+    p101_fprintf(env, err, stream, "p101_observe=%s\n", args->p101_observe);
+    p101_fprintf(env, err, stream, "p101_error_path_walk=%s\n", args->p101_error_path_walk);
+    p101_fprintf(env, err, stream, "p101_resource_tracker=%s\n", args->resource_tracker);
+    p101_fprintf(env, err, stream, "p101_trace=%s\n", args->p101_trace);
+    p101_fprintf(env, err, stream, "p101_report=%s\n", args->p101_report);
+    p101_fputs(env, err, "command=", stream);
+
+    for(size_t i = 0; args->command_argv[i] != NULL; i++)
+    {
+        p101_fprintf(env, err, stream, "%s%s", (i == 0U) ? "" : " ", args->command_argv[i]);
     }
 
     p101_fputc(env, err, '\n', stream);

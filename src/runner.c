@@ -48,6 +48,7 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
 
     p101_doctor_create_dir(env, err, paths.fault_dir);
     p101_doctor_write_command_file(env, err, paths.command, args->command_argv);
+    p101_doctor_write_manifest_file(env, err, paths.manifest, args, &paths);
 
     if(p101_error_has_error(err))
     {

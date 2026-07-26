@@ -52,6 +52,7 @@ static void test_make_doctor_paths_uses_requested_directory(void)
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/observe", paths.observe_dir);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/fault-walk/case", paths.fault_prefix);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/summary.md", paths.summary);
+    TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/manifest.txt", paths.manifest);
 }
 
 int main(void)
