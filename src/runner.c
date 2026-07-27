@@ -139,12 +139,15 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
 
 static int run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths)
 {
-    char *tool_argv[MODULE_MAP_ARGS];
-    char  module_path[PATH_LEN];
-    char  output_path[PATH_LEN];
-    char  source_path[PATH_LEN];
-    char  output_option[] = "-o";
-    int   ret_val;
+    char  *tool_argv[MODULE_MAP_ARGS];
+    char   module_path[PATH_LEN];
+    char   output_path[PATH_LEN];
+    char   source_path[PATH_LEN];
+    char   audit_path[PATH_LEN];
+    char   output_option[] = "-o";
+    char   facts_option[]  = "-F";
+    size_t arg_index;
+    int    ret_val;
 
     P101_TRACE(env);
     p101_strncpy(env, module_path, args->p101_module_map, sizeof(module_path) - 1U);
@@ -153,12 +156,25 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     output_path[sizeof(output_path) - 1U] = '\0';
     p101_strncpy(env, source_path, args->source_path, sizeof(source_path) - 1U);
     source_path[sizeof(source_path) - 1U] = '\0';
+    p101_strncpy(env, audit_path, args->p101_wrapper_audit, sizeof(audit_path) - 1U);
+    audit_path[sizeof(audit_path) - 1U] = '\0';
 
     tool_argv[0] = module_path;
     tool_argv[1] = output_option;
     tool_argv[2] = output_path;
-    tool_argv[3] = source_path;
-    tool_argv[4] = NULL;
+    arg_index    = 3;
+
+    if(!args->skip_wrapper_audit)
+    {
+        tool_argv[arg_index] = facts_option;
+        arg_index++;
+        tool_argv[arg_index] = audit_path;
+        arg_index++;
+    }
+
+    tool_argv[arg_index] = source_path;
+    arg_index++;
+    tool_argv[arg_index] = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
     return ret_val;

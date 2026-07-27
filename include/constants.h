@@ -5,7 +5,7 @@ enum
 {
     MSG_LEN          = 256,
     MAX_TOOL_ARGS    = 256,
-    MODULE_MAP_ARGS  = 5,
+    MODULE_MAP_ARGS  = 7,
     TOOL_ARG_RESERVE = 15,
     UINT_TEXT_LEN    = 32,
     DEFAULT_DIR_MODE = 0755,
