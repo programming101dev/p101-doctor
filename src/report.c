@@ -6,11 +6,18 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+enum
+{
+    JSON_CONTROL_BYTE_LIMIT  = 0x20U,
+    JSON_NON_ASCII_BYTE_BASE = 0x80U
+};
+
 static void        write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status);
 static const char *grade_for_status(int status);
 static void        write_observe_detail(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct doctor_paths *paths);
 static bool        read_observe_resource_line(const struct p101_env *env, struct p101_error *err, const struct doctor_paths *paths, char line[MSG_LEN]);
 static void        trim_newline(const struct p101_env *env, char *line);
+static void        write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
 
 static const char *grade_for_status(int status)
 {
@@ -101,6 +108,53 @@ static void trim_newline(const struct p101_env *env, char *line)
         line[length - 1U] = '\0';
         length--;
     }
+}
+
+static void write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
+{
+    const unsigned char *cursor;
+
+    p101_fputc(env, err, '\"', stream);
+
+    if(text == NULL)
+    {
+        goto done;
+    }
+
+    cursor = (const unsigned char *)text;
+    while(*cursor != '\0' && p101_error_has_no_error(err))
+    {
+        if(*cursor == '\"' || *cursor == '\\')
+        {
+            p101_fputc(env, err, '\\', stream);
+            p101_fputc(env, err, (int)*cursor, stream);
+        }
+        else if(*cursor == '\n')
+        {
+            p101_fputs(env, err, "\\n", stream);
+        }
+        else if(*cursor == '\r')
+        {
+            p101_fputs(env, err, "\\r", stream);
+        }
+        else if(*cursor == '\t')
+        {
+            p101_fputs(env, err, "\\t", stream);
+        }
+        else if(*cursor < JSON_CONTROL_BYTE_LIMIT || *cursor >= JSON_NON_ASCII_BYTE_BASE)
+        {
+            p101_fprintf(env, err, stream, "\\u%04x", (unsigned)*cursor);
+        }
+        else
+        {
+            p101_fputc(env, err, (int)*cursor, stream);
+        }
+
+        cursor++;
+    }
+
+done:
+    p101_fputc(env, err, '\"', stream);
 }
 
 void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths, const struct doctor_result *result)
@@ -201,7 +255,9 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     }
 
     p101_fputs(env, err, "{\n", stream);
-    p101_fprintf(env, err, stream, "  \"command\": \"%s\",\n", args->command_argv[0]);
+    p101_fputs(env, err, "  \"command\": ", stream);
+    write_json_string(env, err, stream, args->command_argv[0]);
+    p101_fputs(env, err, ",\n", stream);
     if(args->skip_wrapper_audit)
     {
         p101_fputs(env, err, "  \"wrapper_audit\": false,\n", stream);
@@ -210,13 +266,25 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     {
         p101_fputs(env, err, "  \"wrapper_audit\": true,\n", stream);
     }
-    p101_fprintf(env, err, stream, "  \"source_path\": \"%s\",\n", args->source_path);
+    p101_fputs(env, err, "  \"source_path\": ", stream);
+    write_json_string(env, err, stream, args->source_path);
+    p101_fputs(env, err, ",\n", stream);
     p101_fprintf(env, err, stream, "  \"fault_count\": %u,\n", args->fault_count);
-    p101_fprintf(env, err, stream, "  \"doctor_dir\": \"%s\",\n", paths->dir);
-    p101_fprintf(env, err, stream, "  \"manifest\": \"%s\",\n", paths->manifest);
-    p101_fprintf(env, err, stream, "  \"module_report\": \"%s\",\n", paths->module_report);
-    p101_fprintf(env, err, stream, "  \"observe_dir\": \"%s\",\n", paths->observe_dir);
-    p101_fprintf(env, err, stream, "  \"fault_dir\": \"%s\",\n", paths->fault_dir);
+    p101_fputs(env, err, "  \"doctor_dir\": ", stream);
+    write_json_string(env, err, stream, paths->dir);
+    p101_fputs(env, err, ",\n", stream);
+    p101_fputs(env, err, "  \"manifest\": ", stream);
+    write_json_string(env, err, stream, paths->manifest);
+    p101_fputs(env, err, ",\n", stream);
+    p101_fputs(env, err, "  \"module_report\": ", stream);
+    write_json_string(env, err, stream, paths->module_report);
+    p101_fputs(env, err, ",\n", stream);
+    p101_fputs(env, err, "  \"observe_dir\": ", stream);
+    write_json_string(env, err, stream, paths->observe_dir);
+    p101_fputs(env, err, ",\n", stream);
+    p101_fputs(env, err, "  \"fault_dir\": ", stream);
+    write_json_string(env, err, stream, paths->fault_dir);
+    p101_fputs(env, err, ",\n", stream);
     p101_fputs(env, err, "  \"statuses\": {\n", stream);
     if(!args->skip_wrapper_audit)
     {
