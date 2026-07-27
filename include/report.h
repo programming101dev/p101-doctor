@@ -9,6 +9,7 @@
 struct doctor_result
 {
     int wrapper_status;
+    int error_contract_status;
     int module_status;
     int observe_status;
     int fault_walk_status;

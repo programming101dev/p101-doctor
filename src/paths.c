@@ -26,6 +26,8 @@ void p101_doctor_make_paths(const struct p101_env *env, struct p101_error *err, 
     join_path(env, err, paths->command, paths->dir, "command.txt");
     join_path(env, err, paths->wrapper_stdout, paths->dir, "wrapper-audit.stdout.txt");
     join_path(env, err, paths->wrapper_stderr, paths->dir, "wrapper-audit.stderr.txt");
+    join_path(env, err, paths->error_contract_stdout, paths->dir, "error-contract.stdout.txt");
+    join_path(env, err, paths->error_contract_stderr, paths->dir, "error-contract.stderr.txt");
     join_path(env, err, paths->module_stdout, paths->dir, "module-map.stdout.txt");
     join_path(env, err, paths->module_stderr, paths->dir, "module-map.stderr.txt");
     join_path(env, err, paths->module_report, paths->dir, "module-map.md");
@@ -87,9 +89,15 @@ void p101_doctor_write_manifest_file(const struct p101_env *env, struct p101_err
 
     p101_fputs(env, err, "p101-doctor manifest\n", stream);
     p101_fprintf(env, err, stream, "doctor_dir=%s\n", paths->dir);
-    p101_fprintf(env, err, stream, "source_path=%s\n", args->source_path);
+    p101_fputs(env, err, "source_paths=", stream);
+    for(int i = 0; i < args->source_count; i++)
+    {
+        p101_fprintf(env, err, stream, "%s%s", (i == 0) ? "" : " ", args->source_paths[i]);
+    }
+    p101_fputc(env, err, '\n', stream);
     p101_fprintf(env, err, stream, "fault_count=%u\n", args->fault_count);
     p101_fprintf(env, err, stream, "p101_wrapper_audit=%s\n", args->p101_wrapper_audit);
+    p101_fprintf(env, err, stream, "p101_error_contract=%s\n", args->p101_error_contract);
     p101_fprintf(env, err, stream, "p101_module_map=%s\n", args->p101_module_map);
     p101_fprintf(env, err, stream, "p101_observe=%s\n", args->p101_observe);
     p101_fprintf(env, err, stream, "p101_error_path_walk=%s\n", args->p101_error_path_walk);

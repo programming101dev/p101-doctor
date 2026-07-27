@@ -1,6 +1,7 @@
 #ifndef P101_DOCTOR_ARGUMENTS_H
 #define P101_DOCTOR_ARGUMENTS_H
 
+#include "constants.h"
 #include <stdbool.h>
 
 enum
@@ -11,10 +12,11 @@ enum
 struct arguments
 {
     const char  *doctor_dir;
-    const char  *source_path;
+    const char  *source_paths[MAX_SOURCE_PATHS];
     const char  *fault_count_str;
     unsigned int fault_count;
     const char  *p101_wrapper_audit;
+    const char  *p101_error_contract;
     const char  *p101_module_map;
     const char  *p101_observe;
     const char  *p101_error_path_walk;
@@ -23,8 +25,10 @@ struct arguments
     const char  *p101_report;
     char *const *command_argv;
     int          command_argc;
+    int          source_count;
     bool         verbose;
     bool         skip_wrapper_audit;
+    bool         source_paths_set;
 };
 
 #endif    // P101_DOCTOR_ARGUMENTS_H

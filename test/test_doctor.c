@@ -46,6 +46,8 @@ static void test_make_doctor_paths_uses_requested_directory(void)
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test", paths.dir);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/wrapper-audit.stdout.txt", paths.wrapper_stdout);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/wrapper-audit.stderr.txt", paths.wrapper_stderr);
+    TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/error-contract.stdout.txt", paths.error_contract_stdout);
+    TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/error-contract.stderr.txt", paths.error_contract_stderr);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.stdout.txt", paths.module_stdout);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.stderr.txt", paths.module_stderr);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.md", paths.module_report);

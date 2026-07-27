@@ -13,9 +13,11 @@ void p101_doctor_arguments_init(const struct p101_env *env, struct arguments *ar
 {
     P101_TRACE(env);
     p101_memset(env, args, 0, sizeof(*args));
-    args->source_path          = DEFAULT_SOURCE_PATH;
+    args->source_paths[0]      = DEFAULT_SOURCE_PATH;
+    args->source_count         = 1;
     args->fault_count_str      = DEFAULT_FAULT_COUNT;
     args->p101_wrapper_audit   = DEFAULT_WRAPPER_AUDIT;
+    args->p101_error_contract  = DEFAULT_ERROR_CONTRACT;
     args->p101_module_map      = DEFAULT_MODULE_MAP;
     args->p101_observe         = DEFAULT_OBSERVE_PATH;
     args->p101_error_path_walk = DEFAULT_ERROR_WALK_PATH;
@@ -36,7 +38,7 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
         p101_doctor_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
     }
 
-    while((opt = p101_getopt(env, argc, argv, ":hvxo:s:n:A:M:O:W:r:t:p:")) != -1 && p101_error_has_no_error(err))
+    while((opt = p101_getopt(env, argc, argv, ":hvxo:s:n:A:E:M:O:W:r:t:p:")) != -1 && p101_error_has_no_error(err))
     {
         switch(opt)
         {
@@ -61,7 +63,20 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             }
             case 's':
             {
-                args->source_path = optarg;
+                if(!args->source_paths_set)
+                {
+                    args->source_count     = 0;
+                    args->source_paths_set = true;
+                }
+
+                if(args->source_count >= MAX_SOURCE_PATHS)
+                {
+                    P101_ERROR_RAISE_USER(err, "Too many source paths were provided.", ERR_USAGE);
+                    break;
+                }
+
+                args->source_paths[args->source_count] = optarg;
+                args->source_count++;
                 break;
             }
             case 'n':
@@ -72,6 +87,11 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             case 'A':
             {
                 args->p101_wrapper_audit = optarg;
+                break;
+            }
+            case 'E':
+            {
+                args->p101_error_contract = optarg;
                 break;
             }
             case 'M':
@@ -168,10 +188,19 @@ void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *
         goto done;
     }
 
-    if(args->source_path == NULL || args->source_path[0] == '\0')
+    if(args->source_count <= 0)
     {
-        P101_ERROR_RAISE_USER(err, "The source path must not be empty.", ERR_USAGE);
+        P101_ERROR_RAISE_USER(err, "At least one source path is required.", ERR_USAGE);
         goto done;
+    }
+
+    for(int i = 0; i < args->source_count; i++)
+    {
+        if(args->source_paths[i] == NULL || args->source_paths[i][0] == '\0')
+        {
+            P101_ERROR_RAISE_USER(err, "Source paths must not be empty.", ERR_USAGE);
+            goto done;
+        }
     }
 
     if(args->fault_count_str == NULL || args->fault_count_str[0] == '\0')
@@ -183,6 +212,12 @@ void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *
     if(!args->skip_wrapper_audit && (args->p101_wrapper_audit == NULL || args->p101_wrapper_audit[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-wrapper-audit path must not be empty.", ERR_USAGE);
+        goto done;
+    }
+
+    if(!args->skip_wrapper_audit && (args->p101_error_contract == NULL || args->p101_error_contract[0] == '\0'))
+    {
+        P101_ERROR_RAISE_USER(err, "The p101-error-contract path must not be empty.", ERR_USAGE);
         goto done;
     }
 
@@ -248,18 +283,19 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
         env,
         err,
         stderr,
-        "Usage: %s [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>] [-n <count>] [-A <p101-wrapper-audit>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
+        "Usage: %s [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
         program_name);
     p101_fputs(env, err, "\n", stderr);
     p101_fputs(env, err, "Run a p101 program through wrapper, observation, and fault-injected error-path checks.\n", stderr);
     p101_fputs(env, err, "\nOptions:\n", stderr);
     p101_fputs(env, err, "  -h                      Show this help\n", stderr);
     p101_fputs(env, err, "  -v                      Enable p101 tracing inside p101-doctor\n", stderr);
-    p101_fputs(env, err, "  -x                      Skip static wrapper audit; still run module, observe, and error-path checks\n", stderr);
+    p101_fputs(env, err, "  -x                      Skip static p101 source-contract checks; still run module, observe, and error-path checks\n", stderr);
     p101_fputs(env, err, "  -o <doctor-dir>         Output directory; default is p101-doctor-<pid>\n", stderr);
-    p101_fputs(env, err, "  -s <source-path>        Source path for p101-wrapper-audit; default is .\n", stderr);
+    p101_fputs(env, err, "  -s <source-path>        Source/header path to scan; repeatable; default is .\n", stderr);
     p101_fputs(env, err, "  -n <count>              Fault cases for p101-error-path-walk; default is 16\n", stderr);
     p101_fputs(env, err, "  -A <p101-wrapper-audit> p101-wrapper-audit executable; default resolves through PATH\n", stderr);
+    p101_fputs(env, err, "  -E <p101-error-contract> p101-error-contract executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -M <p101-module-map>    p101-module-map executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -O <p101-observe>       p101-observe executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -W <p101-error-path-walk> p101-error-path-walk executable; default resolves through PATH\n", stderr);

@@ -177,7 +177,14 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     }
     else
     {
-        p101_fprintf(env, err, stream, "Source path: `%s`\n\n", args->source_path);
+        p101_fputs(env, err, "Source paths:", stream);
+
+        for(int i = 0; i < args->source_count; i++)
+        {
+            p101_fprintf(env, err, stream, " `%s`", args->source_paths[i]);
+        }
+
+        p101_fputs(env, err, "\n\n", stream);
     }
     p101_fprintf(env, err, stream, "Fault-injection cases requested: `%u`\n\n", args->fault_count);
 
@@ -185,6 +192,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     if(!args->skip_wrapper_audit)
     {
         write_grade_line(env, err, stream, "Wrapper usage", result->wrapper_status);
+        write_grade_line(env, err, stream, "Error contracts", result->error_contract_status);
     }
     write_grade_line(env, err, stream, "Module shape", result->module_status);
     write_grade_line(env, err, stream, "Runtime resources", result->observe_status);
@@ -199,6 +207,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     if(!args->skip_wrapper_audit)
     {
         p101_doctor_print_status_markdown(env, err, stream, "p101-wrapper-audit", result->wrapper_status);
+        p101_doctor_print_status_markdown(env, err, stream, "p101-error-contract", result->error_contract_status);
     }
     p101_doctor_print_status_markdown(env, err, stream, "p101-module-map", result->module_status);
     p101_doctor_print_status_markdown(env, err, stream, "p101-observe", result->observe_status);
@@ -210,6 +219,8 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     {
         p101_fputs(env, err, "- Wrapper audit stdout: [wrapper-audit.stdout.txt](./wrapper-audit.stdout.txt)\n", stream);
         p101_fputs(env, err, "- Wrapper audit stderr: [wrapper-audit.stderr.txt](./wrapper-audit.stderr.txt)\n", stream);
+        p101_fputs(env, err, "- Error contract stdout: [error-contract.stdout.txt](./error-contract.stdout.txt)\n", stream);
+        p101_fputs(env, err, "- Error contract stderr: [error-contract.stderr.txt](./error-contract.stderr.txt)\n", stream);
     }
     p101_fputs(env, err, "- Module map report: [module-map.md](./module-map.md)\n", stream);
     p101_fputs(env, err, "- Module map stdout: [module-map.stdout.txt](./module-map.stdout.txt)\n", stream);
@@ -230,6 +241,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     if(!args->skip_wrapper_audit)
     {
         p101_fputs(env, err, "`p101-wrapper-audit` is the static boundary story: it reports calls that bypass available p101 wrappers.\n\n", stream);
+        p101_fputs(env, err, "`p101-error-contract` is the static error-handling story: it reports p101 calls used before a visible env/error contract.\n\n", stream);
     }
     p101_fputs(env, err, "`p101-module-map` is the static design story: it reports module shape, public API surface, include relationships, and likely split/static-scope opportunities.\n\n", stream);
     p101_fputs(env, err, "`p101-observe` is the clean/ordinary execution story: resources, calls, trace tree, and correlated findings.\n\n", stream);
@@ -266,9 +278,16 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     {
         p101_fputs(env, err, "  \"wrapper_audit\": true,\n", stream);
     }
-    p101_fputs(env, err, "  \"source_path\": ", stream);
-    write_json_string(env, err, stream, args->source_path);
-    p101_fputs(env, err, ",\n", stream);
+    p101_fputs(env, err, "  \"source_paths\": [", stream);
+    for(int i = 0; i < args->source_count; i++)
+    {
+        if(i > 0)
+        {
+            p101_fputs(env, err, ", ", stream);
+        }
+        write_json_string(env, err, stream, args->source_paths[i]);
+    }
+    p101_fputs(env, err, "],\n", stream);
     p101_fprintf(env, err, stream, "  \"fault_count\": %u,\n", args->fault_count);
     p101_fputs(env, err, "  \"doctor_dir\": ", stream);
     write_json_string(env, err, stream, paths->dir);
@@ -289,6 +308,8 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     if(!args->skip_wrapper_audit)
     {
         p101_doctor_print_status_json(env, err, stream, "p101_wrapper_audit", result->wrapper_status);
+        p101_fputs(env, err, ",\n", stream);
+        p101_doctor_print_status_json(env, err, stream, "p101_error_contract", result->error_contract_status);
         p101_fputs(env, err, ",\n", stream);
     }
     p101_doctor_print_status_json(env, err, stream, "p101_module_map", result->module_status);

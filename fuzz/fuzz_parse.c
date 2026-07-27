@@ -81,7 +81,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 #endif
 
     p101_memset(env, &args, 0, sizeof(args));
-    args.source_path          = DEFAULT_SOURCE_PATH;
+    args.source_paths[0]      = DEFAULT_SOURCE_PATH;
+    args.source_count         = 1;
     args.fault_count_str      = DEFAULT_FAULT_COUNT;
     args.p101_wrapper_audit   = DEFAULT_WRAPPER_AUDIT;
     args.p101_module_map      = DEFAULT_MODULE_MAP;

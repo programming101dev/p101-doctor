@@ -3,21 +3,24 @@
 
 enum
 {
-    MSG_LEN          = 256,
-    MAX_TOOL_ARGS    = 256,
-    MODULE_MAP_ARGS  = 7,
-    TOOL_ARG_RESERVE = 15,
-    UINT_TEXT_LEN    = 32,
-    DEFAULT_DIR_MODE = 0755,
-    REPORT_FILE_MODE = 0644,
-    EXEC_FAILURE     = 127,
-    EXIT_FINDINGS    = 1,
-    EXIT_TROUBLE     = 2
+    MSG_LEN             = 256,
+    MAX_TOOL_ARGS       = 256,
+    MAX_SOURCE_PATHS    = 16,
+    STATIC_TOOL_RESERVE = 8,
+    MODULE_MAP_RESERVE  = 6,
+    TOOL_ARG_RESERVE    = 15,
+    UINT_TEXT_LEN       = 32,
+    DEFAULT_DIR_MODE    = 0755,
+    REPORT_FILE_MODE    = 0644,
+    EXEC_FAILURE        = 127,
+    EXIT_FINDINGS       = 1,
+    EXIT_TROUBLE        = 2
 };
 
 #define DEFAULT_DOCTOR_PREFIX "p101-doctor"
 #define DEFAULT_SOURCE_PATH "."
 #define DEFAULT_WRAPPER_AUDIT "p101-wrapper-audit"
+#define DEFAULT_ERROR_CONTRACT "p101-error-contract"
 #define DEFAULT_MODULE_MAP "p101-module-map"
 #define DEFAULT_OBSERVE_PATH "p101-observe"
 #define DEFAULT_ERROR_WALK_PATH "p101-error-path-walk"

@@ -11,6 +11,8 @@ struct doctor_paths
     char command[PATH_LEN];
     char wrapper_stdout[PATH_LEN];
     char wrapper_stderr[PATH_LEN];
+    char error_contract_stdout[PATH_LEN];
+    char error_contract_stderr[PATH_LEN];
     char module_stdout[PATH_LEN];
     char module_stderr[PATH_LEN];
     char module_report[PATH_LEN];
