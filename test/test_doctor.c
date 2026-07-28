@@ -1,4 +1,6 @@
 #include "unity.h"
+#include "cli.h"
+#include "constants.h"
 #include "paths.h"
 #include "status.h"
 #include <p101_c/p101_string.h>
@@ -57,10 +59,31 @@ static void test_make_doctor_paths_uses_requested_directory(void)
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/manifest.txt", paths.manifest);
 }
 
+static void test_parse_repeated_source_paths(void)
+{
+    struct arguments args;
+    char            *argv[] = {"p101-doctor", "-s", "src", "-s", "include", "-x", "--", "./program", NULL};
+
+    p101_doctor_arguments_init(env, &args);
+    p101_doctor_parse_arguments(env, error, 8, argv, &args);
+
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+    TEST_ASSERT_TRUE(args.skip_source_contracts);
+    TEST_ASSERT_TRUE(args.source_paths_set);
+    TEST_ASSERT_EQUAL_INT(2, args.source_count);
+    TEST_ASSERT_EQUAL_STRING("src", args.source_paths[0]);
+    TEST_ASSERT_EQUAL_STRING("include", args.source_paths[1]);
+    TEST_ASSERT_EQUAL_INT(1, args.command_argc);
+    TEST_ASSERT_EQUAL_STRING("./program", args.command_argv[0]);
+    TEST_ASSERT_EQUAL_STRING(DEFAULT_WRAPPER_AUDIT, args.p101_wrapper_audit);
+    TEST_ASSERT_EQUAL_STRING(DEFAULT_ERROR_CONTRACT, args.p101_error_contract);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_status_classification);
     RUN_TEST(test_make_doctor_paths_uses_requested_directory);
+    RUN_TEST(test_parse_repeated_source_paths);
     return UNITY_END();
 }

@@ -27,7 +27,7 @@ struct arguments
     int          command_argc;
     int          source_count;
     bool         verbose;
-    bool         skip_wrapper_audit;
+    bool         skip_source_contracts;
     bool         source_paths_set;
 };
 

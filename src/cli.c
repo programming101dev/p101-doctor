@@ -53,7 +53,7 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             }
             case 'x':
             {
-                args->skip_wrapper_audit = true;
+                args->skip_source_contracts = true;
                 break;
             }
             case 'o':
@@ -209,13 +209,13 @@ void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *
         goto done;
     }
 
-    if(!args->skip_wrapper_audit && (args->p101_wrapper_audit == NULL || args->p101_wrapper_audit[0] == '\0'))
+    if(!args->skip_source_contracts && (args->p101_wrapper_audit == NULL || args->p101_wrapper_audit[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-wrapper-audit path must not be empty.", ERR_USAGE);
         goto done;
     }
 
-    if(!args->skip_wrapper_audit && (args->p101_error_contract == NULL || args->p101_error_contract[0] == '\0'))
+    if(!args->skip_source_contracts && (args->p101_error_contract == NULL || args->p101_error_contract[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-error-contract path must not be empty.", ERR_USAGE);
         goto done;

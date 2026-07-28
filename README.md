@@ -72,9 +72,9 @@ error-path-walk.stderr.txt
 fault-walk/
 ```
 
-The wrapper audit and error contract files are produced by `p101-wrapper-audit`
-and `p101-error-contract`; they are omitted when `-x` is used. `module-map.md`
-is produced by `p101-module-map`; it is always run because module/API shape is
+The source-contract files are produced by `p101-wrapper-audit` and
+`p101-error-contract`; they are omitted when `-x` is used. `module-map.md` is
+produced by `p101-module-map`; it is always run because module/API shape is
 useful even when static p101 source-contract checks are skipped.
 The `observe/` directory is produced by `p101-observe` and contains the detailed
 resource log, call log, resource report, trace tree, correlated report, and JSON
@@ -90,8 +90,8 @@ exact tool paths, source paths, fault count, and target command used for the run
 `p101-doctor` is a conductor, not a separate proof engine. Its findings are only
 as complete as the delegated tools and the admitted inputs they receive. Direct
 non-p101 calls, third-party code outside the wrapper/event stream, skipped
-wrapper audits with `-x`, and source paths that do not cover the real project
-can all hide issues from the final summary.
+source-contract checks with `-x`, and source paths that do not cover the real
+project can all hide issues from the final summary.
 
 ## Exit status
 

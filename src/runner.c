@@ -13,14 +13,17 @@
 #include <p101_posix/sys/p101_wait.h>
 #include <stdio.h>
 
-static int  run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_error_contract(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_observe(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_error_path_walk(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
-static void redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path);
-static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err);
+static int    run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int    run_p101_error_contract(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int    run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int    run_p101_observe(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int    run_p101_error_path_walk(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int    run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
+static void   redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path);
+static void   clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err);
+static void   copy_text(const struct p101_env *env, char dest[PATH_LEN], const char *src);
+static void   copy_source_paths(const struct p101_env *env, const struct arguments *args, char source_paths[MAX_SOURCE_PATHS][PATH_LEN]);
+static size_t append_source_paths(char *tool_argv[], size_t index, char source_paths[MAX_SOURCE_PATHS][PATH_LEN], int source_count);
 
 int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
@@ -56,7 +59,7 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
         goto done;
     }
 
-    if(!args->skip_wrapper_audit)
+    if(!args->skip_source_contracts)
     {
         result.wrapper_status = run_p101_wrapper_audit(env, err, args, &paths);
 
@@ -104,14 +107,14 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
 
     p101_printf(env, err, "p101-doctor: wrote doctor report to %s\n", paths.dir);
 
-    if((!args->skip_wrapper_audit && (!p101_doctor_status_is_acceptable(result.wrapper_status) || !p101_doctor_status_is_acceptable(result.error_contract_status))) || !p101_doctor_status_is_acceptable(result.module_status) ||
+    if((!args->skip_source_contracts && (!p101_doctor_status_is_acceptable(result.wrapper_status) || !p101_doctor_status_is_acceptable(result.error_contract_status))) || !p101_doctor_status_is_acceptable(result.module_status) ||
        !p101_doctor_status_is_acceptable(result.observe_status) || !p101_doctor_status_is_acceptable(result.fault_walk_status))
     {
         ret_val = EXIT_TROUBLE;
         goto done;
     }
 
-    if((!args->skip_wrapper_audit && (p101_doctor_status_has_findings(result.wrapper_status) || p101_doctor_status_has_findings(result.error_contract_status))) || p101_doctor_status_has_findings(result.module_status) ||
+    if((!args->skip_source_contracts && (p101_doctor_status_has_findings(result.wrapper_status) || p101_doctor_status_has_findings(result.error_contract_status))) || p101_doctor_status_has_findings(result.module_status) ||
        p101_doctor_status_has_findings(result.observe_status) || p101_doctor_status_has_findings(result.fault_walk_status))
     {
         ret_val = EXIT_FINDINGS;
@@ -135,27 +138,16 @@ static int run_p101_error_contract(const struct p101_env *env, struct p101_error
     int    ret_val;
 
     P101_TRACE(env);
-    p101_strncpy(env, contract_path, args->p101_error_contract, sizeof(contract_path) - 1U);
-    contract_path[sizeof(contract_path) - 1U] = '\0';
-    p101_strncpy(env, audit_path, args->p101_wrapper_audit, sizeof(audit_path) - 1U);
-    audit_path[sizeof(audit_path) - 1U] = '\0';
-
-    for(int i = 0; i < args->source_count; i++)
-    {
-        p101_strncpy(env, source_paths[i], args->source_paths[i], sizeof(source_paths[i]) - 1U);
-        source_paths[i][sizeof(source_paths[i]) - 1U] = '\0';
-    }
+    copy_text(env, contract_path, args->p101_error_contract);
+    copy_text(env, audit_path, args->p101_wrapper_audit);
+    copy_source_paths(env, args, source_paths);
 
     index              = 0;
     tool_argv[index++] = contract_path;
     tool_argv[index++] = facts_option;
     tool_argv[index++] = audit_path;
-
-    for(int i = 0; i < args->source_count; i++)
-    {
-        tool_argv[index++] = source_paths[i];
-    }
-    tool_argv[index] = NULL;
+    index              = append_source_paths(tool_argv, index, source_paths, args->source_count);
+    tool_argv[index]   = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->error_contract_stdout, paths->error_contract_stderr);
     return ret_val;
@@ -170,23 +162,13 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
     int    ret_val;
 
     P101_TRACE(env);
-    p101_strncpy(env, audit_path, args->p101_wrapper_audit, sizeof(audit_path) - 1U);
-    audit_path[sizeof(audit_path) - 1U] = '\0';
-
-    for(int i = 0; i < args->source_count; i++)
-    {
-        p101_strncpy(env, source_paths[i], args->source_paths[i], sizeof(source_paths[i]) - 1U);
-        source_paths[i][sizeof(source_paths[i]) - 1U] = '\0';
-    }
+    copy_text(env, audit_path, args->p101_wrapper_audit);
+    copy_source_paths(env, args, source_paths);
 
     index              = 0;
     tool_argv[index++] = audit_path;
-
-    for(int i = 0; i < args->source_count; i++)
-    {
-        tool_argv[index++] = source_paths[i];
-    }
-    tool_argv[index] = NULL;
+    index              = append_source_paths(tool_argv, index, source_paths, args->source_count);
+    tool_argv[index]   = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->wrapper_stdout, paths->wrapper_stderr);
     return ret_val;
@@ -205,25 +187,17 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     int    ret_val;
 
     P101_TRACE(env);
-    p101_strncpy(env, module_path, args->p101_module_map, sizeof(module_path) - 1U);
-    module_path[sizeof(module_path) - 1U] = '\0';
-    p101_strncpy(env, output_path, paths->module_report, sizeof(output_path) - 1U);
-    output_path[sizeof(output_path) - 1U] = '\0';
-    p101_strncpy(env, audit_path, args->p101_wrapper_audit, sizeof(audit_path) - 1U);
-    audit_path[sizeof(audit_path) - 1U] = '\0';
-
-    for(int i = 0; i < args->source_count; i++)
-    {
-        p101_strncpy(env, source_paths[i], args->source_paths[i], sizeof(source_paths[i]) - 1U);
-        source_paths[i][sizeof(source_paths[i]) - 1U] = '\0';
-    }
+    copy_text(env, module_path, args->p101_module_map);
+    copy_text(env, output_path, paths->module_report);
+    copy_text(env, audit_path, args->p101_wrapper_audit);
+    copy_source_paths(env, args, source_paths);
 
     tool_argv[0] = module_path;
     tool_argv[1] = output_option;
     tool_argv[2] = output_path;
     arg_index    = 3;
 
-    if(!args->skip_wrapper_audit)
+    if(!args->skip_source_contracts)
     {
         tool_argv[arg_index] = facts_option;
         arg_index++;
@@ -231,11 +205,7 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
         arg_index++;
     }
 
-    for(int i = 0; i < args->source_count; i++)
-    {
-        tool_argv[arg_index] = source_paths[i];
-        arg_index++;
-    }
+    arg_index            = append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
     tool_argv[arg_index] = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
@@ -258,16 +228,11 @@ static int run_p101_observe(const struct p101_env *env, struct p101_error *err, 
     size_t index;
 
     P101_TRACE(env);
-    p101_strncpy(env, observe_path, args->p101_observe, sizeof(observe_path) - 1U);
-    observe_path[sizeof(observe_path) - 1U] = '\0';
-    p101_strncpy(env, observe_dir, paths->observe_dir, sizeof(observe_dir) - 1U);
-    observe_dir[sizeof(observe_dir) - 1U] = '\0';
-    p101_strncpy(env, tracker_path, args->resource_tracker, sizeof(tracker_path) - 1U);
-    tracker_path[sizeof(tracker_path) - 1U] = '\0';
-    p101_strncpy(env, trace_path, args->p101_trace, sizeof(trace_path) - 1U);
-    trace_path[sizeof(trace_path) - 1U] = '\0';
-    p101_strncpy(env, report_path, args->p101_report, sizeof(report_path) - 1U);
-    report_path[sizeof(report_path) - 1U] = '\0';
+    copy_text(env, observe_path, args->p101_observe);
+    copy_text(env, observe_dir, paths->observe_dir);
+    copy_text(env, tracker_path, args->resource_tracker);
+    copy_text(env, trace_path, args->p101_trace);
+    copy_text(env, report_path, args->p101_report);
 
     index              = 0;
     tool_argv[index++] = observe_path;
@@ -310,18 +275,12 @@ static int run_p101_error_path_walk(const struct p101_env *env, struct p101_erro
     size_t index;
 
     P101_TRACE(env);
-    p101_strncpy(env, walk_path, args->p101_error_path_walk, sizeof(walk_path) - 1U);
-    walk_path[sizeof(walk_path) - 1U] = '\0';
-    p101_strncpy(env, fault_prefix, paths->fault_prefix, sizeof(fault_prefix) - 1U);
-    fault_prefix[sizeof(fault_prefix) - 1U] = '\0';
-    p101_strncpy(env, observe_path, args->p101_observe, sizeof(observe_path) - 1U);
-    observe_path[sizeof(observe_path) - 1U] = '\0';
-    p101_strncpy(env, tracker_path, args->resource_tracker, sizeof(tracker_path) - 1U);
-    tracker_path[sizeof(tracker_path) - 1U] = '\0';
-    p101_strncpy(env, trace_path, args->p101_trace, sizeof(trace_path) - 1U);
-    trace_path[sizeof(trace_path) - 1U] = '\0';
-    p101_strncpy(env, report_path, args->p101_report, sizeof(report_path) - 1U);
-    report_path[sizeof(report_path) - 1U] = '\0';
+    copy_text(env, walk_path, args->p101_error_path_walk);
+    copy_text(env, fault_prefix, paths->fault_prefix);
+    copy_text(env, observe_path, args->p101_observe);
+    copy_text(env, tracker_path, args->resource_tracker);
+    copy_text(env, trace_path, args->p101_trace);
+    copy_text(env, report_path, args->p101_report);
     p101_snprintf(env, err, fault_count, sizeof(fault_count), "%u", args->fault_count);
 
     index              = 0;
@@ -426,4 +385,31 @@ static void clear_p101_observer_environment(const struct p101_env *env, struct p
     p101_unsetenv(env, err, FAULT_ERRNO_ENV);
     p101_unsetenv(env, err, FAULT_NAME_ENV);
     p101_unsetenv(env, err, FAULT_LOG_ENV);
+}
+
+static void copy_text(const struct p101_env *env, char dest[PATH_LEN], const char *src)
+{
+    P101_TRACE(env);
+    p101_strncpy(env, dest, src, PATH_LEN - 1U);
+    dest[PATH_LEN - 1U] = '\0';
+}
+
+static void copy_source_paths(const struct p101_env *env, const struct arguments *args, char source_paths[MAX_SOURCE_PATHS][PATH_LEN])
+{
+    P101_TRACE(env);
+    for(int i = 0; i < args->source_count; i++)
+    {
+        copy_text(env, source_paths[i], args->source_paths[i]);
+    }
+}
+
+static size_t append_source_paths(char *tool_argv[], size_t index, char source_paths[MAX_SOURCE_PATHS][PATH_LEN], int source_count)
+{
+    for(int i = 0; i < source_count; i++)
+    {
+        tool_argv[index] = source_paths[i];
+        index++;
+    }
+
+    return index;
 }

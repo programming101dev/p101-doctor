@@ -52,7 +52,7 @@ endfunction()
 
 # Tests THIS project's own code by including src/main.c with its program main()
 # renamed aside, so the static helpers remain directly testable.
-p101_add_test(test_doctor test_doctor.c ../src/paths.c ../src/status.c)
+p101_add_test(test_doctor test_doctor.c ../src/cli.c ../src/paths.c ../src/status.c)
 
 # Example of testing a p101 wrapper this project links (no project code needed).
 p101_add_test(test_p101_string test_p101_string.c)

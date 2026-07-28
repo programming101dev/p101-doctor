@@ -171,9 +171,9 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
 
     p101_fputs(env, err, "# p101 doctor\n\n", stream);
     p101_fprintf(env, err, stream, "Command: `%s`\n\n", args->command_argv[0]);
-    if(args->skip_wrapper_audit)
+    if(args->skip_source_contracts)
     {
-        p101_fputs(env, err, "Wrapper audit: `skipped`\n\n", stream);
+        p101_fputs(env, err, "Source contracts: `skipped`\n\n", stream);
     }
     else
     {
@@ -189,7 +189,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     p101_fprintf(env, err, stream, "Fault-injection cases requested: `%u`\n\n", args->fault_count);
 
     p101_fputs(env, err, "## Quick grade\n\n", stream);
-    if(!args->skip_wrapper_audit)
+    if(!args->skip_source_contracts)
     {
         write_grade_line(env, err, stream, "Wrapper usage", result->wrapper_status);
         write_grade_line(env, err, stream, "Error contracts", result->error_contract_status);
@@ -204,7 +204,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     p101_fputs(env, err, "## Results\n\n", stream);
     p101_fputs(env, err, "| Step | Status |\n", stream);
     p101_fputs(env, err, "| --- | --- |\n", stream);
-    if(!args->skip_wrapper_audit)
+    if(!args->skip_source_contracts)
     {
         p101_doctor_print_status_markdown(env, err, stream, "p101-wrapper-audit", result->wrapper_status);
         p101_doctor_print_status_markdown(env, err, stream, "p101-error-contract", result->error_contract_status);
@@ -215,7 +215,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
 
     p101_fputs(env, err, "\n## Artifacts\n\n", stream);
     p101_fputs(env, err, "- Command: [command.txt](./command.txt)\n", stream);
-    if(!args->skip_wrapper_audit)
+    if(!args->skip_source_contracts)
     {
         p101_fputs(env, err, "- Wrapper audit stdout: [wrapper-audit.stdout.txt](./wrapper-audit.stdout.txt)\n", stream);
         p101_fputs(env, err, "- Wrapper audit stderr: [wrapper-audit.stderr.txt](./wrapper-audit.stderr.txt)\n", stream);
@@ -238,7 +238,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     p101_fputs(env, err, "- Run manifest: [manifest.txt](./manifest.txt)\n", stream);
 
     p101_fputs(env, err, "\n## How to read this\n\n", stream);
-    if(!args->skip_wrapper_audit)
+    if(!args->skip_source_contracts)
     {
         p101_fputs(env, err, "`p101-wrapper-audit` is the static boundary story: it reports calls that bypass available p101 wrappers.\n\n", stream);
         p101_fputs(env, err, "`p101-error-contract` is the static error-handling story: it reports p101 calls used before a visible env/error contract.\n\n", stream);
@@ -270,13 +270,13 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     p101_fputs(env, err, "  \"command\": ", stream);
     write_json_string(env, err, stream, args->command_argv[0]);
     p101_fputs(env, err, ",\n", stream);
-    if(args->skip_wrapper_audit)
+    if(args->skip_source_contracts)
     {
-        p101_fputs(env, err, "  \"wrapper_audit\": false,\n", stream);
+        p101_fputs(env, err, "  \"source_contracts\": false,\n", stream);
     }
     else
     {
-        p101_fputs(env, err, "  \"wrapper_audit\": true,\n", stream);
+        p101_fputs(env, err, "  \"source_contracts\": true,\n", stream);
     }
     p101_fputs(env, err, "  \"source_paths\": [", stream);
     for(int i = 0; i < args->source_count; i++)
@@ -305,7 +305,7 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     write_json_string(env, err, stream, paths->fault_dir);
     p101_fputs(env, err, ",\n", stream);
     p101_fputs(env, err, "  \"statuses\": {\n", stream);
-    if(!args->skip_wrapper_audit)
+    if(!args->skip_source_contracts)
     {
         p101_doctor_print_status_json(env, err, stream, "p101_wrapper_audit", result->wrapper_status);
         p101_fputs(env, err, ",\n", stream);
