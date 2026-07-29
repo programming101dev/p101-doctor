@@ -379,12 +379,12 @@ static int run_tool_capture(const struct p101_env *env, struct p101_error *err, 
         if(p101_error_has_error(err))
         {
             p101_fprintf(env, err, stderr, "p101-doctor: tool setup failed: %s\n", p101_error_get_message(err));
-            p101_exit_immediately(env, EXEC_FAILURE);
+            p101_posix_exit_immediately(env, EXEC_FAILURE);
         }
 
         p101_execvp(env, err, tool_argv[0], tool_argv);
         p101_fprintf(env, err, stderr, "p101-doctor: exec failed for %s: %s\n", tool_argv[0], p101_error_get_message(err));
-        p101_exit_immediately(env, EXEC_FAILURE);
+        p101_posix_exit_immediately(env, EXEC_FAILURE);
     }
 
     p101_waitpid(env, err, pid, &status, 0);
