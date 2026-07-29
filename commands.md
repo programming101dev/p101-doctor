@@ -21,6 +21,7 @@ Run `./change-compiler.sh -c <compiler>` once before building.
 | `./clean.sh` | Remove `build-` / `coverage-` / `profile-` output (`-n` previews) |
 | `./build-clang/p101-doctor -- <command>` | Run a program through wrapper, error-contract, module, observation, and error-path checks |
 | `./build-clang/p101-doctor -x -- <command>` | Skip static p101 source-contract checks; still run module, observation, and error-path checks |
+| `./build-clang/p101-doctor -C build-clang/compile_commands.json -s src -- <command>` | Pin the compile database used for the shared source-fact snapshot |
 
 Less common: `./build-all.sh` (build with every compiler), `./check-compilers.sh`
 (detect installed compilers), `./check-env.sh` (verify required tools).

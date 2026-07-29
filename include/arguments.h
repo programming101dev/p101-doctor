@@ -12,6 +12,7 @@ enum
 struct arguments
 {
     const char  *doctor_dir;
+    const char  *compile_db_path;
     const char  *source_paths[MAX_SOURCE_PATHS];
     const char  *fault_count_str;
     unsigned int fault_count;

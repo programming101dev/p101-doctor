@@ -35,6 +35,7 @@ set(main_SOURCES
         src/paths.c
         src/report.c
         src/runner.c
+        src/source_inputs.c
         src/status.c
 )
 
@@ -46,15 +47,18 @@ set(main_HEADERS
         include/paths.h
         include/report.h
         include/runner.h
+        include/source_inputs.h
         include/status.h
 )
 
 set(main_LINK_LIBRARIES
         p101_error
         p101_env
+        p101_tool_event
         p101_c
         p101_posix
         p101_unix
         p101_convert
+        p101_c_facts
         m
 )

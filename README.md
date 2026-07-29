@@ -22,7 +22,7 @@ static p101 source-contract checks.
 ## Usage
 
 ```sh
-p101-doctor [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] \
+p101-doctor [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-C <compile_commands.json>] [-n <count>] \
     [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] \
     [-O <p101-observe>] [-W <p101-error-path-walk>] \
     [-r <p101-resource-tracker>] [-t <p101-trace>] [-p <p101-report>] \
@@ -35,6 +35,7 @@ Examples:
 p101-doctor -- ./my-program config.txt
 p101-doctor -x -- ./my-program config.txt
 p101-doctor -o doctor -s src -s include -n 32 -- ./my-program
+p101-doctor -C build-clang/compile_commands.json -s src -s include -- ./my-program
 p101-doctor \
     -A ../p101-wrapper-audit/p101-wrapper-audit \
     -E ../p101-error-contract/build-clang/p101-error-contract \
@@ -61,9 +62,12 @@ summary.md
 doctor.json
 wrapper-audit.stdout.txt
 wrapper-audit.stderr.txt
+source-facts.tsv
+source-inputs.json
 error-contract.stdout.txt
 error-contract.stderr.txt
 module-map.md
+module-map.json
 module-map.stdout.txt
 module-map.stderr.txt
 observe/
@@ -92,6 +96,17 @@ as complete as the delegated tools and the admitted inputs they receive. Direct
 non-p101 calls, third-party code outside the wrapper/event stream, skipped
 source-contract checks with `-x`, and source paths that do not cover the real
 project can all hide issues from the final summary.
+
+For source checks, the doctor runs one Clang AST pass through
+`p101-wrapper-audit`, writes `source-facts.tsv` plus `source-inputs.json`, and
+feeds that immutable P101FACT v2 snapshot to both `p101-error-contract` and
+`p101-module-map`. Use `-C` to pin the compilation database; otherwise the
+doctor uses `lib_c_facts` to discover the current project database. The input
+manifest records inactive and unparsed files so a green policy result cannot
+hide an incomplete admitted-input set.
+If the project root contains `.p101-wrapper-audit-allow`, doctor passes that
+scoped boundary ledger to wrapper-audit; the same input manifest records its
+path and hash.
 
 ## Exit status
 

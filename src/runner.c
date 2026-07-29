@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "paths.h"
 #include "report.h"
+#include "source_inputs.h"
 #include "status.h"
 #include <fcntl.h>
 #include <p101_c/p101_stdio.h>
@@ -13,17 +14,14 @@
 #include <p101_posix/sys/p101_wait.h>
 #include <stdio.h>
 
-static int    run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int    run_p101_error_contract(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int    run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int    run_p101_observe(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int    run_p101_error_path_walk(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int    run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
-static void   redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path);
-static void   clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err);
-static void   copy_text(const struct p101_env *env, char dest[PATH_LEN], const char *src);
-static void   copy_source_paths(const struct p101_env *env, const struct arguments *args, char source_paths[MAX_SOURCE_PATHS][PATH_LEN]);
-static size_t append_source_paths(char *tool_argv[], size_t index, char source_paths[MAX_SOURCE_PATHS][PATH_LEN], int source_count);
+static int  run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int  run_p101_error_contract(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int  run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int  run_p101_observe(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int  run_p101_error_path_walk(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int  run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
+static void redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path);
+static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err);
 
 int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
@@ -131,22 +129,22 @@ static int run_p101_error_contract(const struct p101_env *env, struct p101_error
 {
     char  *tool_argv[MAX_SOURCE_PATHS + STATIC_TOOL_RESERVE];
     char   contract_path[PATH_LEN];
-    char   audit_path[PATH_LEN];
     char   source_paths[MAX_SOURCE_PATHS][PATH_LEN];
-    char   facts_option[] = "-F";
+    char   facts_option[] = "-i";
+    char   facts_path[PATH_LEN];
     size_t index;
     int    ret_val;
 
     P101_TRACE(env);
-    copy_text(env, contract_path, args->p101_error_contract);
-    copy_text(env, audit_path, args->p101_wrapper_audit);
-    copy_source_paths(env, args, source_paths);
+    p101_doctor_copy_text(env, contract_path, args->p101_error_contract);
+    p101_doctor_copy_text(env, facts_path, paths->facts);
+    p101_doctor_copy_source_paths(env, args, source_paths);
 
     index              = 0;
     tool_argv[index++] = contract_path;
     tool_argv[index++] = facts_option;
-    tool_argv[index++] = audit_path;
-    index              = append_source_paths(tool_argv, index, source_paths, args->source_count);
+    tool_argv[index++] = facts_path;
+    index              = p101_doctor_append_source_paths(tool_argv, index, source_paths, args->source_count);
     tool_argv[index]   = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->error_contract_stdout, paths->error_contract_stderr);
@@ -157,18 +155,48 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
 {
     char  *tool_argv[MAX_SOURCE_PATHS + STATIC_TOOL_RESERVE];
     char   audit_path[PATH_LEN];
+    char   facts_path[PATH_LEN];
+    char   input_manifest_path[PATH_LEN];
+    char   compile_db_path[PATH_LEN];
+    char   allow_file_path[] = DEFAULT_WRAPPER_ALLOW_FILE;
     char   source_paths[MAX_SOURCE_PATHS][PATH_LEN];
+    char   facts_option[]          = "--facts-output";
+    char   input_manifest_option[] = "--input-manifest";
+    char   allow_file_option[]     = "--allow-file";
+    char   compile_db_option[]     = "--compile-db";
+    char   compile_only_option[]   = "--compile-db-only";
     size_t index;
     int    ret_val;
 
     P101_TRACE(env);
-    copy_text(env, audit_path, args->p101_wrapper_audit);
-    copy_source_paths(env, args, source_paths);
+    p101_doctor_copy_text(env, audit_path, args->p101_wrapper_audit);
+    p101_doctor_copy_text(env, facts_path, paths->facts);
+    p101_doctor_copy_text(env, input_manifest_path, paths->input_manifest);
+    p101_doctor_copy_source_paths(env, args, source_paths);
 
     index              = 0;
     tool_argv[index++] = audit_path;
-    index              = append_source_paths(tool_argv, index, source_paths, args->source_count);
-    tool_argv[index]   = NULL;
+    tool_argv[index++] = facts_option;
+    tool_argv[index++] = facts_path;
+    tool_argv[index++] = input_manifest_option;
+    tool_argv[index++] = input_manifest_path;
+    if(p101_doctor_resolve_compile_database(env, err, args, compile_db_path))
+    {
+        tool_argv[index++] = compile_db_option;
+        tool_argv[index++] = compile_db_path;
+        tool_argv[index++] = compile_only_option;
+    }
+    if(p101_access(env, NULL, allow_file_path, F_OK) == 0)    // P101_ERROR_CONTRACT_ALLOW_NO_ERROR: absence means the project has no boundary ledger.
+    {
+        tool_argv[index++] = allow_file_option;
+        tool_argv[index++] = allow_file_path;
+    }
+    if(p101_error_has_error(err))
+    {
+        return EXIT_TROUBLE;
+    }
+    index            = p101_doctor_append_source_paths(tool_argv, index, source_paths, args->source_count);
+    tool_argv[index] = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->wrapper_stdout, paths->wrapper_stderr);
     return ret_val;
@@ -179,18 +207,21 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     char  *tool_argv[MAX_SOURCE_PATHS + MODULE_MAP_RESERVE];
     char   module_path[PATH_LEN];
     char   output_path[PATH_LEN];
+    char   json_path[PATH_LEN];
     char   source_paths[MAX_SOURCE_PATHS][PATH_LEN];
-    char   audit_path[PATH_LEN];
     char   output_option[] = "-o";
-    char   facts_option[]  = "-F";
+    char   facts_option[]  = "-i";
+    char   json_option[]   = "-j";
+    char   facts_path[PATH_LEN];
     size_t arg_index;
     int    ret_val;
 
     P101_TRACE(env);
-    copy_text(env, module_path, args->p101_module_map);
-    copy_text(env, output_path, paths->module_report);
-    copy_text(env, audit_path, args->p101_wrapper_audit);
-    copy_source_paths(env, args, source_paths);
+    p101_doctor_copy_text(env, module_path, args->p101_module_map);
+    p101_doctor_copy_text(env, output_path, paths->module_report);
+    p101_doctor_copy_text(env, json_path, paths->module_json);
+    p101_doctor_copy_text(env, facts_path, paths->facts);
+    p101_doctor_copy_source_paths(env, args, source_paths);
 
     tool_argv[0] = module_path;
     tool_argv[1] = output_option;
@@ -201,14 +232,32 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     {
         tool_argv[arg_index] = facts_option;
         arg_index++;
-        tool_argv[arg_index] = audit_path;
+        tool_argv[arg_index] = facts_path;
         arg_index++;
     }
 
-    arg_index            = append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
+    arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
     tool_argv[arg_index] = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
+    if(!args->skip_source_contracts && p101_doctor_status_is_acceptable(ret_val))
+    {
+        int json_status;
+
+        arg_index              = 1;
+        tool_argv[arg_index++] = json_option;
+        tool_argv[arg_index++] = output_option;
+        tool_argv[arg_index++] = json_path;
+        tool_argv[arg_index++] = facts_option;
+        tool_argv[arg_index++] = facts_path;
+        arg_index              = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
+        tool_argv[arg_index]   = NULL;
+        json_status            = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
+        if(json_status != ret_val)
+        {
+            ret_val = EXIT_TROUBLE << WAIT_STATUS_SHIFT;
+        }
+    }
     return ret_val;
 }
 
@@ -228,11 +277,11 @@ static int run_p101_observe(const struct p101_env *env, struct p101_error *err, 
     size_t index;
 
     P101_TRACE(env);
-    copy_text(env, observe_path, args->p101_observe);
-    copy_text(env, observe_dir, paths->observe_dir);
-    copy_text(env, tracker_path, args->resource_tracker);
-    copy_text(env, trace_path, args->p101_trace);
-    copy_text(env, report_path, args->p101_report);
+    p101_doctor_copy_text(env, observe_path, args->p101_observe);
+    p101_doctor_copy_text(env, observe_dir, paths->observe_dir);
+    p101_doctor_copy_text(env, tracker_path, args->resource_tracker);
+    p101_doctor_copy_text(env, trace_path, args->p101_trace);
+    p101_doctor_copy_text(env, report_path, args->p101_report);
 
     index              = 0;
     tool_argv[index++] = observe_path;
@@ -275,12 +324,12 @@ static int run_p101_error_path_walk(const struct p101_env *env, struct p101_erro
     size_t index;
 
     P101_TRACE(env);
-    copy_text(env, walk_path, args->p101_error_path_walk);
-    copy_text(env, fault_prefix, paths->fault_prefix);
-    copy_text(env, observe_path, args->p101_observe);
-    copy_text(env, tracker_path, args->resource_tracker);
-    copy_text(env, trace_path, args->p101_trace);
-    copy_text(env, report_path, args->p101_report);
+    p101_doctor_copy_text(env, walk_path, args->p101_error_path_walk);
+    p101_doctor_copy_text(env, fault_prefix, paths->fault_prefix);
+    p101_doctor_copy_text(env, observe_path, args->p101_observe);
+    p101_doctor_copy_text(env, tracker_path, args->resource_tracker);
+    p101_doctor_copy_text(env, trace_path, args->p101_trace);
+    p101_doctor_copy_text(env, report_path, args->p101_report);
     p101_snprintf(env, err, fault_count, sizeof(fault_count), "%u", args->fault_count);
 
     index              = 0;
@@ -385,31 +434,4 @@ static void clear_p101_observer_environment(const struct p101_env *env, struct p
     p101_unsetenv(env, err, FAULT_ERRNO_ENV);
     p101_unsetenv(env, err, FAULT_NAME_ENV);
     p101_unsetenv(env, err, FAULT_LOG_ENV);
-}
-
-static void copy_text(const struct p101_env *env, char dest[PATH_LEN], const char *src)
-{
-    P101_TRACE(env);
-    p101_strncpy(env, dest, src, PATH_LEN - 1U);
-    dest[PATH_LEN - 1U] = '\0';
-}
-
-static void copy_source_paths(const struct p101_env *env, const struct arguments *args, char source_paths[MAX_SOURCE_PATHS][PATH_LEN])
-{
-    P101_TRACE(env);
-    for(int i = 0; i < args->source_count; i++)
-    {
-        copy_text(env, source_paths[i], args->source_paths[i]);
-    }
-}
-
-static size_t append_source_paths(char *tool_argv[], size_t index, char source_paths[MAX_SOURCE_PATHS][PATH_LEN], int source_count)
-{
-    for(int i = 0; i < source_count; i++)
-    {
-        tool_argv[index] = source_paths[i];
-        index++;
-    }
-
-    return index;
 }

@@ -38,7 +38,7 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
         p101_doctor_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
     }
 
-    while((opt = p101_getopt(env, argc, argv, ":hvxo:s:n:A:E:M:O:W:r:t:p:")) != -1 && p101_error_has_no_error(err))
+    while((opt = p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:t:p:")) != -1 && p101_error_has_no_error(err))
     {
         switch(opt)
         {
@@ -82,6 +82,11 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             case 'n':
             {
                 args->fault_count_str = optarg;
+                break;
+            }
+            case 'C':
+            {
+                args->compile_db_path = optarg;
                 break;
             }
             case 'A':
@@ -208,6 +213,11 @@ void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *
         P101_ERROR_RAISE_USER(err, "The fault count must not be empty.", ERR_USAGE);
         goto done;
     }
+    if(args->compile_db_path != NULL && args->compile_db_path[0] == '\0')
+    {
+        P101_ERROR_RAISE_USER(err, "The compile database path must not be empty.", ERR_USAGE);
+        goto done;
+    }
 
     if(!args->skip_source_contracts && (args->p101_wrapper_audit == NULL || args->p101_wrapper_audit[0] == '\0'))
     {
@@ -283,7 +293,7 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
         env,
         err,
         stderr,
-        "Usage: %s [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
+        "Usage: %s [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-C <compile_commands.json>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
         program_name);
     p101_fputs(env, err, "\n", stderr);
     p101_fputs(env, err, "Run a p101 program through wrapper, observation, and fault-injected error-path checks.\n", stderr);
@@ -294,6 +304,7 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
     p101_fputs(env, err, "  -o <doctor-dir>         Output directory; default is p101-doctor-<pid>\n", stderr);
     p101_fputs(env, err, "  -s <source-path>        Source/header path to scan; repeatable; default is .\n", stderr);
     p101_fputs(env, err, "  -n <count>              Fault cases for p101-error-path-walk; default is 16\n", stderr);
+    p101_fputs(env, err, "  -C <compile_commands.json> Use one explicit compile database for every source tool\n", stderr);
     p101_fputs(env, err, "  -A <p101-wrapper-audit> p101-wrapper-audit executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -E <p101-error-contract> p101-error-contract executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -M <p101-module-map>    p101-module-map executable; default resolves through PATH\n", stderr);

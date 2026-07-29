@@ -219,10 +219,13 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
     {
         p101_fputs(env, err, "- Wrapper audit stdout: [wrapper-audit.stdout.txt](./wrapper-audit.stdout.txt)\n", stream);
         p101_fputs(env, err, "- Wrapper audit stderr: [wrapper-audit.stderr.txt](./wrapper-audit.stderr.txt)\n", stream);
+        p101_fputs(env, err, "- Shared source facts: [source-facts.tsv](./source-facts.tsv)\n", stream);
+        p101_fputs(env, err, "- Admitted source inputs: [source-inputs.json](./source-inputs.json)\n", stream);
         p101_fputs(env, err, "- Error contract stdout: [error-contract.stdout.txt](./error-contract.stdout.txt)\n", stream);
         p101_fputs(env, err, "- Error contract stderr: [error-contract.stderr.txt](./error-contract.stderr.txt)\n", stream);
     }
     p101_fputs(env, err, "- Module map report: [module-map.md](./module-map.md)\n", stream);
+    p101_fputs(env, err, "- Module map JSON findings: [module-map.json](./module-map.json)\n", stream);
     p101_fputs(env, err, "- Module map stdout: [module-map.stdout.txt](./module-map.stdout.txt)\n", stream);
     p101_fputs(env, err, "- Module map stderr: [module-map.stderr.txt](./module-map.stderr.txt)\n", stream);
     p101_fputs(env, err, "- Observe stdout: [observe.stdout.txt](./observe.stdout.txt)\n", stream);
@@ -266,7 +269,7 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
         goto done;
     }
 
-    p101_fputs(env, err, "{\n", stream);
+    p101_fputs(env, err, "{\n  \"schema\": \"p101-doctor-v2\",\n", stream);
     p101_fputs(env, err, "  \"command\": ", stream);
     write_json_string(env, err, stream, args->command_argv[0]);
     p101_fputs(env, err, ",\n", stream);
@@ -295,8 +298,16 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
     p101_fputs(env, err, "  \"manifest\": ", stream);
     write_json_string(env, err, stream, paths->manifest);
     p101_fputs(env, err, ",\n", stream);
+    p101_fputs(env, err, "  \"source_facts\": ", stream);
+    write_json_string(env, err, stream, paths->facts);
+    p101_fputs(env, err, ",\n  \"source_inputs\": ", stream);
+    write_json_string(env, err, stream, paths->input_manifest);
+    p101_fputs(env, err, ",\n", stream);
     p101_fputs(env, err, "  \"module_report\": ", stream);
     write_json_string(env, err, stream, paths->module_report);
+    p101_fputs(env, err, ",\n", stream);
+    p101_fputs(env, err, "  \"module_findings\": ", stream);
+    write_json_string(env, err, stream, paths->module_json);
     p101_fputs(env, err, ",\n", stream);
     p101_fputs(env, err, "  \"observe_dir\": ", stream);
     write_json_string(env, err, stream, paths->observe_dir);
