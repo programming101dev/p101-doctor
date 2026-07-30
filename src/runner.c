@@ -4,14 +4,12 @@
 #include "report.h"
 #include "source_inputs.h"
 #include "status.h"
-#include <fcntl.h>
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
-#include <p101_posix/p101_fcntl.h>
 #include <p101_posix/p101_stdlib.h>
 #include <p101_posix/p101_unistd.h>
-#include <p101_posix/sys/p101_wait.h>
+#include <p101_util/tool_run.h>
 #include <stdio.h>
 
 #ifdef P101_DOCTOR_COVERAGE
@@ -26,6 +24,7 @@ static int  run_p101_error_path_walk(const struct p101_env *env, struct p101_err
 static int  run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
 static void redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path);
 static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err);
+static void setup_tool_child(const struct p101_env *env, struct p101_error *err, void *context);
 
 int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
@@ -167,6 +166,7 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
     char   facts_option[]          = "--facts-output";
     char   input_manifest_option[] = "--input-manifest";
     char   allow_file_option[]     = "--allow-file";
+    char   portability_option[]    = "--check-portability-includes";
     char   compile_db_option[]     = "--compile-db";
     char   compile_only_option[]   = "--compile-db-only";
     size_t index;
@@ -184,6 +184,7 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
     tool_argv[index++] = facts_path;
     tool_argv[index++] = input_manifest_option;
     tool_argv[index++] = input_manifest_path;
+    tool_argv[index++] = portability_option;
     if(p101_doctor_resolve_compile_database(env, err, args, compile_db_path))
     {
         tool_argv[index++] = compile_db_option;
@@ -406,77 +407,31 @@ static int run_p101_error_path_walk(const struct p101_env *env, struct p101_erro
 
 static int run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path)
 {
-    int   status;
-    pid_t pid;
+    struct p101_tool_run_options options;
 
     P101_TRACE_SCOPE(env);
-    status = 0;
-    pid    = p101_fork(env, err);
-
-    if(p101_error_has_error(err))
-    {
-        goto done;
-    }
-
-    if(pid == 0)
-    {
-        clear_p101_observer_environment(env, err);
-        redirect_child_output(env, err, stdout_path, stderr_path);
-
-        if(p101_error_has_error(err))
-        {
-            p101_fprintf(env, err, stderr, "p101-doctor: tool setup failed: %s\n", p101_error_get_message(err));
-#ifdef P101_DOCTOR_COVERAGE
-            __gcov_dump();
-#endif
-            p101_posix_exit_immediately(env, EXEC_FAILURE);
-        }
-
-#ifdef P101_DOCTOR_COVERAGE
-        __gcov_dump();
-#endif
-        p101_execvp(env, err, tool_argv[0], tool_argv);
-        p101_fprintf(env, err, stderr, "p101-doctor: exec failed for %s: %s\n", tool_argv[0], p101_error_get_message(err));
-#ifdef P101_DOCTOR_COVERAGE
-        __gcov_dump();
-#endif
-        p101_posix_exit_immediately(env, EXEC_FAILURE);
-    }
-
-    p101_waitpid(env, err, pid, &status, 0);
-
-done:
-    return status;
+    options.stdout_path         = stdout_path;
+    options.stderr_path         = stderr_path;
+    options.diagnostic_name     = "p101-doctor";
+    options.output_mode         = REPORT_FILE_MODE;
+    options.child_setup         = setup_tool_child;
+    options.child_setup_context = NULL;
+    return p101_tool_run_capture(env, err, tool_argv, &options);
 }
 
 static void redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path)
 {
-    int stdout_fd;
-    int stderr_fd;
-
     P101_TRACE_SCOPE(env);
-    stdout_fd = p101_open(env, err, stdout_path, O_WRONLY | O_CREAT | O_TRUNC, REPORT_FILE_MODE);
+    p101_tool_run_redirect(env, err, stdout_path, stderr_path, REPORT_FILE_MODE);
+}
 
-    if(p101_error_has_error(err))
-    {
-        goto done;
-    }
-
-    stderr_fd = p101_open(env, err, stderr_path, O_WRONLY | O_CREAT | O_TRUNC, REPORT_FILE_MODE);
-
-    if(p101_error_has_error(err))
-    {
-        p101_close(env, err, stdout_fd);
-        goto done;
-    }
-
-    p101_dup2(env, err, stdout_fd, STDOUT_FILENO);
-    p101_dup2(env, err, stderr_fd, STDERR_FILENO);
-    p101_close(env, err, stdout_fd);
-    p101_close(env, err, stderr_fd);
-
-done:
-    return;
+static void setup_tool_child(const struct p101_env *env, struct p101_error *err, void *context)
+{
+    (void)context;
+    clear_p101_observer_environment(env, err);
+#ifdef P101_DOCTOR_COVERAGE
+    __gcov_dump();
+#endif
 }
 
 static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err)

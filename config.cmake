@@ -60,5 +60,6 @@ set(main_LINK_LIBRARIES
         p101_unix
         p101_convert
         p101_c_facts
+        p101_util
         m
 )
