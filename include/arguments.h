@@ -22,6 +22,7 @@ struct arguments
     const char  *p101_observe;
     const char  *p101_error_path_walk;
     const char  *resource_tracker;
+    const char  *p101_sync_check;
     const char  *p101_trace;
     const char  *p101_report;
     char *const *command_argv;

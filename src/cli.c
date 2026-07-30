@@ -11,7 +11,7 @@
 
 void p101_doctor_arguments_init(const struct p101_env *env, struct arguments *args)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_memset(env, args, 0, sizeof(*args));
     args->source_paths[0]      = DEFAULT_SOURCE_PATH;
     args->source_count         = 1;
@@ -22,6 +22,7 @@ void p101_doctor_arguments_init(const struct p101_env *env, struct arguments *ar
     args->p101_observe         = DEFAULT_OBSERVE_PATH;
     args->p101_error_path_walk = DEFAULT_ERROR_WALK_PATH;
     args->resource_tracker     = DEFAULT_TRACKER_PATH;
+    args->p101_sync_check      = DEFAULT_CONCURRENCY_PATH;
     args->p101_trace           = DEFAULT_TRACE_PATH;
     args->p101_report          = DEFAULT_REPORT_PATH;
 }
@@ -30,7 +31,7 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
 {
     int opt;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     opterr = 0;
 
     if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
@@ -38,7 +39,7 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
         p101_doctor_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
     }
 
-    while((opt = p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:t:p:")) != -1 && p101_error_has_no_error(err))
+    while((opt = p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:d:t:p:")) != -1 && p101_error_has_no_error(err))
     {
         switch(opt)
         {
@@ -119,6 +120,11 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
                 args->resource_tracker = optarg;
                 break;
             }
+            case 'd':
+            {
+                args->p101_sync_check = optarg;
+                break;
+            }
             case 't':
             {
                 args->p101_trace = optarg;
@@ -173,7 +179,7 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
 
 void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
 
     if(args->command_argv == NULL || args->command_argv[0] == NULL)
     {
@@ -255,6 +261,12 @@ void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *
         goto done;
     }
 
+    if(args->p101_sync_check == NULL || args->p101_sync_check[0] == '\0')
+    {
+        P101_ERROR_RAISE_USER(err, "The p101-sync-check path must not be empty.", ERR_USAGE);
+        goto done;
+    }
+
     if(args->p101_trace == NULL || args->p101_trace[0] == '\0')
     {
         P101_ERROR_RAISE_USER(err, "The p101-trace path must not be empty.", ERR_USAGE);
@@ -273,7 +285,7 @@ done:
 
 void p101_doctor_convert_arguments(const struct p101_env *env, struct p101_error *err, struct arguments *args)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     args->fault_count = p101_parse_unsigned_int(env, err, args->fault_count_str, 0U);
 
     if(p101_error_has_error(err))
@@ -293,7 +305,7 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
         env,
         err,
         stderr,
-        "Usage: %s [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-C <compile_commands.json>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
+        "Usage: %s [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-C <compile_commands.json>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
         program_name);
     p101_fputs(env, err, "\n", stderr);
     p101_fputs(env, err, "Run a p101 program through wrapper, observation, and fault-injected error-path checks.\n", stderr);
@@ -311,6 +323,7 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
     p101_fputs(env, err, "  -O <p101-observe>       p101-observe executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -W <p101-error-path-walk> p101-error-path-walk executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -r <p101-resource-tracker> p101-resource-tracker executable; default resolves through PATH\n", stderr);
+    p101_fputs(env, err, "  -d <p101-sync-check>   p101-sync-check executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -t <p101-trace>         p101-trace executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -p <p101-report>        p101-report executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "\nExample:\n", stderr);

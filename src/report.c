@@ -164,7 +164,7 @@ void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_erro
 {
     FILE *stream;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     stream = p101_fopen(env, err, paths->summary, "w");
 
     if(stream == NULL)
@@ -264,7 +264,7 @@ void p101_doctor_write_json_file(const struct p101_env *env, struct p101_error *
 {
     FILE *stream;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     stream = p101_fopen(env, err, paths->json, "w");
 
     if(stream == NULL)

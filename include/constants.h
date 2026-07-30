@@ -27,6 +27,7 @@ enum
 #define DEFAULT_OBSERVE_PATH "p101-observe"
 #define DEFAULT_ERROR_WALK_PATH "p101-error-path-walk"
 #define DEFAULT_TRACKER_PATH "p101-resource-tracker"
+#define DEFAULT_CONCURRENCY_PATH "p101-sync-check"
 #define DEFAULT_TRACE_PATH "p101-trace"
 #define DEFAULT_REPORT_PATH "p101-report"
 #define DEFAULT_FAULT_COUNT "16"

@@ -6,11 +6,11 @@ program through:
 1. `p101-wrapper-audit`, which checks whether source code bypasses available
    p101 wrappers;
 2. `p101-error-contract`, which checks whether p101 wrapper/error use has a
-   visible `env`/`err` contract;
+   visible `env`/`err` contract and rejects silently discarded wrapper errors;
 3. `p101-module-map`, which checks module shape, public API surface, include
    relationships, and likely split/static-scope opportunities;
-4. `p101-observe`, which captures resource events, call traces, resource
-   findings, and correlated reports for an ordinary execution; and
+4. `p101-observe`, which captures resource events, concurrency findings, call
+   traces, resource findings, and correlated reports for an ordinary execution; and
 5. `p101-error-path-walk`, which fails p101 calls one at a time and checks the
    resulting error paths for leaked or badly released resources.
 
@@ -25,7 +25,7 @@ static p101 source-contract checks.
 p101-doctor [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-C <compile_commands.json>] [-n <count>] \
     [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] \
     [-O <p101-observe>] [-W <p101-error-path-walk>] \
-    [-r <p101-resource-tracker>] [-t <p101-trace>] [-p <p101-report>] \
+    [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] \
     -- <command> [args...]
 ```
 
@@ -43,6 +43,7 @@ p101-doctor \
     -O ../p101-observe/build-clang/p101-observe \
     -W ../p101-error-path-walk/build-clang/p101-error-path-walk \
     -r ../p101-resource-tracker/build-clang/p101-resource-tracker \
+    -d ../p101-sync-check/build-clang/p101-sync-check \
     -t ../p101-trace/build-clang/p101-trace \
     -p ../p101-report/build-clang/p101-report \
     -- ./my-program

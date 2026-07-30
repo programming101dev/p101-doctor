@@ -4,14 +4,14 @@
 
 void p101_doctor_copy_text(const struct p101_env *env, char dest[PATH_LEN], const char *src)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_strncpy(env, dest, src, PATH_LEN - 1U);
     dest[PATH_LEN - 1U] = '\0';
 }
 
 void p101_doctor_copy_source_paths(const struct p101_env *env, const struct arguments *args, char source_paths[MAX_SOURCE_PATHS][PATH_LEN])
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     for(int i = 0; i < args->source_count; i++)
     {
         p101_doctor_copy_text(env, source_paths[i], args->source_paths[i]);
@@ -33,7 +33,7 @@ bool p101_doctor_resolve_compile_database(const struct p101_env *env, struct p10
 {
     bool found;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     path[0] = '\0';
     if(args->compile_db_path != NULL)
     {

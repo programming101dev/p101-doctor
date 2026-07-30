@@ -11,7 +11,7 @@ static void join_path(const struct p101_env *env, struct p101_error *err, char d
 
 void p101_doctor_make_paths(const struct p101_env *env, struct p101_error *err, const struct arguments *args, struct doctor_paths *paths)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
 
     if(args->doctor_dir == NULL)
     {
@@ -48,7 +48,7 @@ void p101_doctor_make_paths(const struct p101_env *env, struct p101_error *err, 
 
 void p101_doctor_create_dir(const struct p101_env *env, struct p101_error *err, const char *path)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_mkdir(env, err, path, DEFAULT_DIR_MODE);
 }
 
@@ -56,7 +56,7 @@ void p101_doctor_write_command_file(const struct p101_env *env, struct p101_erro
 {
     FILE *stream;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     stream = p101_fopen(env, err, path, "w");
 
     if(stream == NULL)
@@ -82,7 +82,7 @@ void p101_doctor_write_manifest_file(const struct p101_env *env, struct p101_err
 {
     FILE *stream;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     stream = p101_fopen(env, err, path, "w");
 
     if(stream == NULL)
@@ -108,6 +108,7 @@ void p101_doctor_write_manifest_file(const struct p101_env *env, struct p101_err
     p101_fprintf(env, err, stream, "p101_observe=%s\n", args->p101_observe);
     p101_fprintf(env, err, stream, "p101_error_path_walk=%s\n", args->p101_error_path_walk);
     p101_fprintf(env, err, stream, "p101_resource_tracker=%s\n", args->resource_tracker);
+    p101_fprintf(env, err, stream, "p101_sync_check=%s\n", args->p101_sync_check);
     p101_fprintf(env, err, stream, "p101_trace=%s\n", args->p101_trace);
     p101_fprintf(env, err, stream, "p101_report=%s\n", args->p101_report);
     p101_fputs(env, err, "command=", stream);
@@ -130,7 +131,7 @@ static void join_path(const struct p101_env *env, struct p101_error *err, char d
 {
     int written;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     written = p101_snprintf(env, err, destination, PATH_LEN, "%s/%s", dir, name);
 
     if(written < 0 || written >= PATH_LEN)

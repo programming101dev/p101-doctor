@@ -29,7 +29,7 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
     struct doctor_result result;
     int                  ret_val;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_memset(env, &paths, 0, sizeof(paths));
     p101_memset(env, &result, 0, sizeof(result));
     ret_val = EXIT_TROUBLE;
@@ -135,7 +135,7 @@ static int run_p101_error_contract(const struct p101_env *env, struct p101_error
     size_t index;
     int    ret_val;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_doctor_copy_text(env, contract_path, args->p101_error_contract);
     p101_doctor_copy_text(env, facts_path, paths->facts);
     p101_doctor_copy_source_paths(env, args, source_paths);
@@ -168,7 +168,7 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
     size_t index;
     int    ret_val;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_doctor_copy_text(env, audit_path, args->p101_wrapper_audit);
     p101_doctor_copy_text(env, facts_path, paths->facts);
     p101_doctor_copy_text(env, input_manifest_path, paths->input_manifest);
@@ -216,7 +216,7 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     size_t arg_index;
     int    ret_val;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_doctor_copy_text(env, module_path, args->p101_module_map);
     p101_doctor_copy_text(env, output_path, paths->module_report);
     p101_doctor_copy_text(env, json_path, paths->module_json);
@@ -267,19 +267,22 @@ static int run_p101_observe(const struct p101_env *env, struct p101_error *err, 
     char   observe_path[PATH_LEN];
     char   observe_dir[PATH_LEN];
     char   tracker_path[PATH_LEN];
+    char   concurrency_path[PATH_LEN];
     char   trace_path[PATH_LEN];
     char   report_path[PATH_LEN];
-    char   output_option[]  = "-o";
-    char   tracker_option[] = "-r";
-    char   trace_option[]   = "-t";
-    char   report_option[]  = "-p";
-    char   separator[]      = "--";
+    char   output_option[]      = "-o";
+    char   tracker_option[]     = "-r";
+    char   concurrency_option[] = "-d";
+    char   trace_option[]       = "-t";
+    char   report_option[]      = "-p";
+    char   separator[]          = "--";
     size_t index;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_doctor_copy_text(env, observe_path, args->p101_observe);
     p101_doctor_copy_text(env, observe_dir, paths->observe_dir);
     p101_doctor_copy_text(env, tracker_path, args->resource_tracker);
+    p101_doctor_copy_text(env, concurrency_path, args->p101_sync_check);
     p101_doctor_copy_text(env, trace_path, args->p101_trace);
     p101_doctor_copy_text(env, report_path, args->p101_report);
 
@@ -289,6 +292,8 @@ static int run_p101_observe(const struct p101_env *env, struct p101_error *err, 
     tool_argv[index++] = observe_dir;
     tool_argv[index++] = tracker_option;
     tool_argv[index++] = tracker_path;
+    tool_argv[index++] = concurrency_option;
+    tool_argv[index++] = concurrency_path;
     tool_argv[index++] = trace_option;
     tool_argv[index++] = trace_path;
     tool_argv[index++] = report_option;
@@ -311,23 +316,26 @@ static int run_p101_error_path_walk(const struct p101_env *env, struct p101_erro
     char   fault_prefix[PATH_LEN];
     char   observe_path[PATH_LEN];
     char   tracker_path[PATH_LEN];
+    char   concurrency_path[PATH_LEN];
     char   trace_path[PATH_LEN];
     char   report_path[PATH_LEN];
     char   fault_count[UINT_TEXT_LEN];
-    char   count_option[]   = "-n";
-    char   prefix_option[]  = "-l";
-    char   observe_option[] = "-O";
-    char   tracker_option[] = "-r";
-    char   trace_option[]   = "-t";
-    char   report_option[]  = "-p";
-    char   separator[]      = "--";
+    char   count_option[]       = "-n";
+    char   prefix_option[]      = "-l";
+    char   observe_option[]     = "-O";
+    char   tracker_option[]     = "-r";
+    char   concurrency_option[] = "-d";
+    char   trace_option[]       = "-t";
+    char   report_option[]      = "-p";
+    char   separator[]          = "--";
     size_t index;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_doctor_copy_text(env, walk_path, args->p101_error_path_walk);
     p101_doctor_copy_text(env, fault_prefix, paths->fault_prefix);
     p101_doctor_copy_text(env, observe_path, args->p101_observe);
     p101_doctor_copy_text(env, tracker_path, args->resource_tracker);
+    p101_doctor_copy_text(env, concurrency_path, args->p101_sync_check);
     p101_doctor_copy_text(env, trace_path, args->p101_trace);
     p101_doctor_copy_text(env, report_path, args->p101_report);
     p101_snprintf(env, err, fault_count, sizeof(fault_count), "%u", args->fault_count);
@@ -342,6 +350,8 @@ static int run_p101_error_path_walk(const struct p101_env *env, struct p101_erro
     tool_argv[index++] = observe_path;
     tool_argv[index++] = tracker_option;
     tool_argv[index++] = tracker_path;
+    tool_argv[index++] = concurrency_option;
+    tool_argv[index++] = concurrency_path;
     tool_argv[index++] = trace_option;
     tool_argv[index++] = trace_path;
     tool_argv[index++] = report_option;
@@ -362,7 +372,7 @@ static int run_tool_capture(const struct p101_env *env, struct p101_error *err, 
     int   status;
     pid_t pid;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     status = 0;
     pid    = p101_fork(env, err);
 
@@ -398,7 +408,7 @@ static void redirect_child_output(const struct p101_env *env, struct p101_error 
     int stdout_fd;
     int stderr_fd;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     stdout_fd = p101_open(env, err, stdout_path, O_WRONLY | O_CREAT | O_TRUNC, REPORT_FILE_MODE);
 
     if(p101_error_has_error(err))
@@ -425,7 +435,7 @@ done:
 
 static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_unsetenv(env, err, RESOURCE_LOG_ENV);
     p101_unsetenv(env, err, CALL_LOG_ENV);
     p101_unsetenv(env, err, CALL_LOG_ARGS_ENV);
