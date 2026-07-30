@@ -1,11 +1,16 @@
-#include "unity.h"
 #include "cli.h"
 #include "constants.h"
 #include "paths.h"
+#include "report.h"
+#include "source_inputs.h"
 #include "status.h"
+#include "unity.h"
+#include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
 #include <p101_env/env.h>
 #include <p101_error/error.h>
+#include <p101_posix/p101_unistd.h>
+#include <p101_posix/sys/p101_stat.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -35,7 +40,7 @@ static void test_status_classification(void)
 
 static void test_make_doctor_paths_uses_requested_directory(void)
 {
-    struct arguments   args;
+    struct arguments    args;
     struct doctor_paths paths;
 
     p101_memset(env, &args, 0, sizeof(args));
@@ -57,6 +62,16 @@ static void test_make_doctor_paths_uses_requested_directory(void)
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/fault-walk/case", paths.fault_prefix);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/summary.md", paths.summary);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/manifest.txt", paths.manifest);
+
+    {
+        char long_dir[PATH_LEN + 1U];
+
+        p101_memset(env, long_dir, 'x', sizeof(long_dir) - 1U);
+        long_dir[sizeof(long_dir) - 1U] = '\0';
+        args.doctor_dir                 = long_dir;
+        p101_doctor_make_paths(env, error, &args, &paths);
+        TEST_ASSERT_TRUE(p101_error_has_error(error));
+    }
 }
 
 static void test_parse_repeated_source_paths(void)
@@ -79,11 +94,187 @@ static void test_parse_repeated_source_paths(void)
     TEST_ASSERT_EQUAL_STRING(DEFAULT_ERROR_CONTRACT, args.p101_error_contract);
 }
 
+static void expect_invalid(struct arguments *args)
+{
+    p101_doctor_check_arguments(env, error, args);
+    TEST_ASSERT_TRUE(p101_error_has_error(error));
+    p101_error_reset(error);
+}
+
+static void test_argument_validation_and_conversion(void)
+{
+    struct arguments args;
+    char            *command[] = {"/usr/bin/true", NULL};
+
+    p101_doctor_arguments_init(env, &args);
+    args.command_argv = command;
+    args.command_argc = 1;
+    p101_doctor_check_arguments(env, error, &args);
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+
+    args.command_argv = NULL;
+    expect_invalid(&args);
+    args.command_argv = command;
+    args.command_argc = MAX_TOOL_ARGS;
+    expect_invalid(&args);
+    args.command_argc = 1;
+    args.doctor_dir   = "";
+    expect_invalid(&args);
+    args.doctor_dir   = NULL;
+    args.source_count = 0;
+    expect_invalid(&args);
+    args.source_count    = 1;
+    args.source_paths[0] = NULL;
+    expect_invalid(&args);
+    args.source_paths[0] = "";
+    expect_invalid(&args);
+    args.source_paths[0] = ".";
+    args.fault_count_str = NULL;
+    expect_invalid(&args);
+    args.fault_count_str = "";
+    expect_invalid(&args);
+    args.fault_count_str = "1";
+    args.compile_db_path = "";
+    expect_invalid(&args);
+    args.compile_db_path = "db";
+    p101_doctor_check_arguments(env, error, &args);
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+    args.compile_db_path = NULL;
+
+#define EXPECT_EMPTY_FIELD(field)                                                                                                                                                                                                                                  \
+    do                                                                                                                                                                                                                                                             \
+    {                                                                                                                                                                                                                                                              \
+        args.field = "";                                                                                                                                                                                                                                           \
+        expect_invalid(&args);                                                                                                                                                                                                                                     \
+        args.field = "tool";                                                                                                                                                                                                                                       \
+    } while(0)
+    EXPECT_EMPTY_FIELD(p101_wrapper_audit);
+    EXPECT_EMPTY_FIELD(p101_error_contract);
+    EXPECT_EMPTY_FIELD(p101_module_map);
+    EXPECT_EMPTY_FIELD(p101_observe);
+    EXPECT_EMPTY_FIELD(p101_error_path_walk);
+    EXPECT_EMPTY_FIELD(resource_tracker);
+    EXPECT_EMPTY_FIELD(p101_sync_check);
+    EXPECT_EMPTY_FIELD(p101_trace);
+    EXPECT_EMPTY_FIELD(p101_report);
+#undef EXPECT_EMPTY_FIELD
+
+#define EXPECT_NULL_FIELD(field)                                                                                                                                                                                                                                   \
+    do                                                                                                                                                                                                                                                             \
+    {                                                                                                                                                                                                                                                              \
+        args.field = NULL;                                                                                                                                                                                                                                         \
+        expect_invalid(&args);                                                                                                                                                                                                                                     \
+        args.field = "tool";                                                                                                                                                                                                                                       \
+    } while(0)
+    EXPECT_NULL_FIELD(p101_wrapper_audit);
+    EXPECT_NULL_FIELD(p101_error_contract);
+    EXPECT_NULL_FIELD(p101_module_map);
+    EXPECT_NULL_FIELD(p101_observe);
+    EXPECT_NULL_FIELD(p101_error_path_walk);
+    EXPECT_NULL_FIELD(resource_tracker);
+    EXPECT_NULL_FIELD(p101_sync_check);
+    EXPECT_NULL_FIELD(p101_trace);
+    EXPECT_NULL_FIELD(p101_report);
+#undef EXPECT_NULL_FIELD
+
+    args.skip_source_contracts = true;
+    args.p101_wrapper_audit    = "";
+    args.p101_error_contract   = "";
+    p101_doctor_check_arguments(env, error, &args);
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+
+    args.fault_count_str = "not-a-number";
+    p101_doctor_convert_arguments(env, error, &args);
+    TEST_ASSERT_TRUE(p101_error_has_error(error));
+}
+
+static void test_source_inputs_status_and_reports(void)
+{
+    struct arguments     args;
+    struct doctor_paths  paths;
+    struct doctor_result result;
+    char                 copied[PATH_LEN];
+    char                 sources[MAX_SOURCE_PATHS][PATH_LEN];
+    char                *tool_argv[MAX_SOURCE_PATHS + 2];
+    char                *command[] = {"quote\" slash\\ line\nreturn\rtab\t\1\200", NULL};
+    char                 dir[PATH_LEN];
+    char                 observe_summary[PATH_LEN];
+    FILE                *stream;
+
+    p101_doctor_arguments_init(env, &args);
+    args.command_argv    = command;
+    args.command_argc    = 1;
+    args.source_count    = 2;
+    args.source_paths[0] = "src";
+    args.source_paths[1] = "include";
+    args.fault_count     = 3U;
+    p101_memset(env, &paths, 0, sizeof(paths));
+    p101_memset(env, &result, 0, sizeof(result));
+    p101_snprintf(env, error, dir, sizeof(dir), "/tmp/p101-doctor-unit-%ld", (long)p101_getpid(env));
+    args.doctor_dir = dir;
+    p101_doctor_make_paths(env, error, &args, &paths);
+    p101_mkdir(env, error, paths.dir, 0700);
+    p101_mkdir(env, error, paths.observe_dir, 0700);
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+
+    p101_doctor_copy_text(env, copied, "text");
+    TEST_ASSERT_EQUAL_STRING("text", copied);
+    p101_doctor_copy_source_paths(env, &args, sources);
+    TEST_ASSERT_EQUAL_UINT64(2U, p101_doctor_append_source_paths(tool_argv, 0U, sources, 2));
+    args.compile_db_path = "compile_commands.json";
+    TEST_ASSERT_TRUE(p101_doctor_resolve_compile_database(env, error, &args, copied));
+    args.compile_db_path = NULL;
+    (void)p101_doctor_resolve_compile_database(env, error, &args, copied);
+    p101_error_reset(error);
+
+    stream = p101_tmpfile(env, error);
+    TEST_ASSERT_NOT_NULL(stream);
+    p101_doctor_print_status_markdown(env, error, stream, "clean", 0);
+    p101_doctor_print_status_markdown(env, error, stream, "signal", SIGTERM);
+    p101_doctor_print_status_markdown(env, error, stream, "other", 0x7f);
+    p101_doctor_print_status_markdown(env, error, stream, "continued", 0x137f);
+    p101_doctor_print_status_json(env, error, stream, "clean", 0);
+    p101_doctor_print_status_json(env, error, stream, "signal", SIGTERM);
+    p101_doctor_print_status_json(env, error, stream, "other", 0x7f);
+    p101_doctor_print_status_json(env, error, stream, "continued", 0x137f);
+    TEST_ASSERT_EQUAL_STRING("clean", p101_doctor_status_word(0));
+    TEST_ASSERT_EQUAL_STRING("findings", p101_doctor_status_word(1 << 8));
+    TEST_ASSERT_EQUAL_STRING("trouble", p101_doctor_status_word(2 << 8));
+    p101_fclose(env, error, stream);
+
+    result.wrapper_status        = 0;
+    result.error_contract_status = 1 << 8;
+    result.module_status         = SIGTERM;
+    result.observe_status        = 2 << 8;
+    result.fault_walk_status     = 0x7f;
+    p101_doctor_write_summary_file(env, error, &args, &paths, &result);
+    p101_doctor_write_json_file(env, error, &args, &paths, &result);
+
+    p101_snprintf(env, error, observe_summary, sizeof(observe_summary), "%s/summary.txt", paths.observe_dir);
+    stream = p101_fopen(env, error, observe_summary, "w");
+    p101_fputs(env, error, "ignored\r\nresources: fd=1 alloc=2\r\n", stream);
+    p101_fclose(env, error, stream);
+    args.skip_source_contracts = true;
+    args.source_count          = 1;
+    args.source_paths[0]       = NULL;
+    p101_doctor_write_summary_file(env, error, &args, &paths, &result);
+    p101_doctor_write_json_file(env, error, &args, &paths, &result);
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+
+    p101_unlink(env, error, observe_summary);
+    p101_unlink(env, error, paths.summary);
+    p101_unlink(env, error, paths.json);
+    p101_rmdir(env, error, paths.observe_dir);
+    p101_rmdir(env, error, paths.dir);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_status_classification);
     RUN_TEST(test_make_doctor_paths_uses_requested_directory);
     RUN_TEST(test_parse_repeated_source_paths);
+    RUN_TEST(test_argument_validation_and_conversion);
+    RUN_TEST(test_source_inputs_status_and_reports);
     return UNITY_END();
 }

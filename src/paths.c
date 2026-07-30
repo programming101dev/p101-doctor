@@ -134,7 +134,7 @@ static void join_path(const struct p101_env *env, struct p101_error *err, char d
     P101_TRACE_SCOPE(env);
     written = p101_snprintf(env, err, destination, PATH_LEN, "%s/%s", dir, name);
 
-    if(written < 0 || written >= PATH_LEN)
+    if(written >= PATH_LEN)
     {
         P101_ERROR_RAISE_USER(err, "A doctor path is too long.", ERR_USAGE);
     }

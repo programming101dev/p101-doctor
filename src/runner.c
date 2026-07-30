@@ -14,6 +14,10 @@
 #include <p101_posix/sys/p101_wait.h>
 #include <stdio.h>
 
+#ifdef P101_DOCTOR_COVERAGE
+extern void __gcov_dump(void);
+#endif
+
 static int  run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
 static int  run_p101_error_contract(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
 static int  run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
@@ -209,10 +213,14 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     char   output_path[PATH_LEN];
     char   json_path[PATH_LEN];
     char   source_paths[MAX_SOURCE_PATHS][PATH_LEN];
-    char   output_option[] = "-o";
-    char   facts_option[]  = "-i";
-    char   json_option[]   = "-j";
+    char   output_option[]     = "-o";
+    char   facts_option[]      = "-i";
+    char   compile_db_option[] = "-C";
+    char   fact_tool_option[]  = "-F";
+    char   json_option[]       = "-j";
     char   facts_path[PATH_LEN];
+    char   compile_db_path[PATH_LEN];
+    char   audit_path[PATH_LEN];
     size_t arg_index;
     int    ret_val;
 
@@ -221,6 +229,8 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     p101_doctor_copy_text(env, output_path, paths->module_report);
     p101_doctor_copy_text(env, json_path, paths->module_json);
     p101_doctor_copy_text(env, facts_path, paths->facts);
+    p101_doctor_copy_text(env, audit_path, args->p101_wrapper_audit);
+    compile_db_path[0] = '\0';
     p101_doctor_copy_source_paths(env, args, source_paths);
 
     tool_argv[0] = module_path;
@@ -235,12 +245,26 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
         tool_argv[arg_index] = facts_path;
         arg_index++;
     }
+    else
+    {
+        if(p101_doctor_resolve_compile_database(env, err, args, compile_db_path))
+        {
+            tool_argv[arg_index++] = compile_db_option;
+            tool_argv[arg_index++] = compile_db_path;
+        }
+        tool_argv[arg_index++] = fact_tool_option;
+        tool_argv[arg_index++] = audit_path;
+    }
+    if(p101_error_has_error(err))
+    {
+        return EXIT_TROUBLE;
+    }
 
     arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
     tool_argv[arg_index] = NULL;
 
     ret_val = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
-    if(!args->skip_source_contracts && p101_doctor_status_is_acceptable(ret_val))
+    if(p101_doctor_status_is_acceptable(ret_val))
     {
         int json_status;
 
@@ -248,11 +272,24 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
         tool_argv[arg_index++] = json_option;
         tool_argv[arg_index++] = output_option;
         tool_argv[arg_index++] = json_path;
-        tool_argv[arg_index++] = facts_option;
-        tool_argv[arg_index++] = facts_path;
-        arg_index              = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
-        tool_argv[arg_index]   = NULL;
-        json_status            = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
+        if(!args->skip_source_contracts)
+        {
+            tool_argv[arg_index++] = facts_option;
+            tool_argv[arg_index++] = facts_path;
+        }
+        else
+        {
+            if(compile_db_path[0] != '\0')
+            {
+                tool_argv[arg_index++] = compile_db_option;
+                tool_argv[arg_index++] = compile_db_path;
+            }
+            tool_argv[arg_index++] = fact_tool_option;
+            tool_argv[arg_index++] = audit_path;
+        }
+        arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
+        tool_argv[arg_index] = NULL;
+        json_status          = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
         if(json_status != ret_val)
         {
             ret_val = EXIT_TROUBLE << WAIT_STATUS_SHIFT;
@@ -389,11 +426,20 @@ static int run_tool_capture(const struct p101_env *env, struct p101_error *err, 
         if(p101_error_has_error(err))
         {
             p101_fprintf(env, err, stderr, "p101-doctor: tool setup failed: %s\n", p101_error_get_message(err));
+#ifdef P101_DOCTOR_COVERAGE
+            __gcov_dump();
+#endif
             p101_posix_exit_immediately(env, EXEC_FAILURE);
         }
 
+#ifdef P101_DOCTOR_COVERAGE
+        __gcov_dump();
+#endif
         p101_execvp(env, err, tool_argv[0], tool_argv);
         p101_fprintf(env, err, stderr, "p101-doctor: exec failed for %s: %s\n", tool_argv[0], p101_error_get_message(err));
+#ifdef P101_DOCTOR_COVERAGE
+        __gcov_dump();
+#endif
         p101_posix_exit_immediately(env, EXEC_FAILURE);
     }
 

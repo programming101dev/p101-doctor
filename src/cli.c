@@ -30,17 +30,32 @@ void p101_doctor_arguments_init(const struct p101_env *env, struct arguments *ar
 void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *err, int argc, char *argv[], struct arguments *args)
 {
     int opt;
+#ifdef P101_DOCTOR_TESTING
+    const char *forced_option;
+#endif
 
     P101_TRACE_SCOPE(env);
     opterr = 0;
+#ifdef P101_DOCTOR_TESTING
+    forced_option = getenv("P101_DOCTOR_TEST_OPTION");
+#endif
 
     if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
     {
         p101_doctor_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
     }
 
-    while((opt = p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:d:t:p:")) != -1 && p101_error_has_no_error(err))
+    while(
+#ifdef P101_DOCTOR_TESTING
+        (opt = (forced_option == NULL) ? p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:d:t:p:") : (unsigned char)*forced_option) != -1 &&
+#else
+        (opt = p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:d:t:p:")) != -1 &&
+#endif
+        p101_error_has_no_error(err))
     {
+#ifdef P101_DOCTOR_TESTING
+        forced_option = NULL;
+#endif
         switch(opt)
         {
             case 'h':
@@ -139,7 +154,7 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             {
                 char msg[MSG_LEN];
 
-                p101_snprintf(env, err, msg, sizeof(msg), "Option '-%c' requires an argument.", optopt ? optopt : '?');
+                p101_snprintf(env, err, msg, sizeof(msg), "Option '-%c' requires an argument.", optopt);
                 P101_ERROR_RAISE_USER(err, msg, ERR_USAGE);
                 break;
             }

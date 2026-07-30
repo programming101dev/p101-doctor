@@ -16,7 +16,7 @@ if (P101_TEST_COVERAGE)
     set(_COV --coverage)
 endif ()
 
-set(P101_LIBS p101_error p101_env p101_c p101_posix p101_unix p101_convert)
+set(P101_LIBS p101_error p101_env p101_tool_event p101_c p101_posix p101_unix p101_convert p101_c_facts)
 set(P101_PUBLIC_INCLUDE_DIRS "" CACHE STRING "Extra p101 include dirs")
 set(P101_PUBLIC_LINK_DIRS "" CACHE STRING "Extra p101 link dirs")
 separate_arguments(P101_PUBLIC_INCLUDE_DIRS_LIST NATIVE_COMMAND "${P101_PUBLIC_INCLUDE_DIRS}")
@@ -52,7 +52,36 @@ endfunction()
 
 # Tests THIS project's own code by including src/main.c with its program main()
 # renamed aside, so the static helpers remain directly testable.
-p101_add_test(test_doctor test_doctor.c ../src/cli.c ../src/paths.c ../src/status.c)
+p101_add_test(test_doctor
+        test_doctor.c
+        ../src/cli.c
+        ../src/paths.c
+        ../src/report.c
+        ../src/runner.c
+        ../src/source_inputs.c
+        ../src/status.c)
+target_compile_definitions(test_doctor PRIVATE P101_DOCTOR_TESTING=1)
+if (P101_TEST_COVERAGE)
+    target_compile_definitions(test_doctor PRIVATE P101_DOCTOR_COVERAGE=1)
+endif ()
 
 # Example of testing a p101 wrapper this project links (no project code needed).
 p101_add_test(test_p101_string test_p101_string.c)
+
+add_executable(p101_doctor_coverage_cli
+        ../src/cli.c
+        ../src/main.c
+        ../src/paths.c
+        ../src/report.c
+        ../src/runner.c
+        ../src/source_inputs.c
+        ../src/status.c)
+target_include_directories(p101_doctor_coverage_cli PRIVATE ${_P101_INC_DIRS} "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+target_link_libraries(p101_doctor_coverage_cli PRIVATE ${_P101_RESOLVED} m)
+target_compile_options(p101_doctor_coverage_cli PRIVATE ${_COV})
+target_link_options(p101_doctor_coverage_cli PRIVATE ${_COV})
+target_compile_definitions(p101_doctor_coverage_cli PRIVATE P101_DOCTOR_TESTING=1)
+if (P101_TEST_COVERAGE)
+    target_compile_definitions(p101_doctor_coverage_cli PRIVATE P101_DOCTOR_COVERAGE=1)
+endif ()
+add_test(NAME test_cli COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/test_cli.sh" "$<TARGET_FILE:p101_doctor_coverage_cli>")

@@ -43,13 +43,13 @@ void p101_doctor_print_status_markdown(const struct p101_env *env, struct p101_e
     {
         p101_fprintf(env, err, stream, "| %s | %s (exit %d) |\n", label, p101_doctor_status_word(status), WEXITSTATUS(status));
     }
-    else if(WIFSIGNALED(status))
+    else if(WIFSTOPPED(status))
     {
-        p101_fprintf(env, err, stream, "| %s | trouble (signal %d) |\n", label, WTERMSIG(status));
+        p101_fprintf(env, err, stream, "| %s | trouble (status %d) |\n", label, status);
     }
     else
     {
-        p101_fprintf(env, err, stream, "| %s | trouble (status %d) |\n", label, status);
+        p101_fprintf(env, err, stream, "| %s | trouble (signal %d) |\n", label, WTERMSIG(status));
     }
 }
 
@@ -59,12 +59,12 @@ void p101_doctor_print_status_json(const struct p101_env *env, struct p101_error
     {
         p101_fprintf(env, err, stream, "    \"%s\": {\"kind\": \"exit\", \"code\": %d, \"result\": \"%s\"}", label, WEXITSTATUS(status), p101_doctor_status_word(status));
     }
-    else if(WIFSIGNALED(status))
+    else if(WIFSTOPPED(status))
     {
-        p101_fprintf(env, err, stream, "    \"%s\": {\"kind\": \"signal\", \"signal\": %d, \"result\": \"trouble\"}", label, WTERMSIG(status));
+        p101_fprintf(env, err, stream, "    \"%s\": {\"kind\": \"status\", \"status\": %d, \"result\": \"trouble\"}", label, status);
     }
     else
     {
-        p101_fprintf(env, err, stream, "    \"%s\": {\"kind\": \"status\", \"status\": %d, \"result\": \"trouble\"}", label, status);
+        p101_fprintf(env, err, stream, "    \"%s\": {\"kind\": \"signal\", \"signal\": %d, \"result\": \"trouble\"}", label, WTERMSIG(status));
     }
 }

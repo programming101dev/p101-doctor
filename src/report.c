@@ -79,7 +79,7 @@ static bool read_observe_resource_line(const struct p101_env *env, struct p101_e
         goto done;
     }
 
-    while(p101_error_has_no_error(err) && p101_fgets(env, err, line, MSG_LEN, stream) != NULL)
+    while(p101_fgets(env, err, line, MSG_LEN, stream) != NULL)
     {
         if(p101_strncmp(env, line, "resources:", sizeof("resources:") - 1U) == 0)
         {
@@ -100,14 +100,7 @@ done:
 
 static void trim_newline(const struct p101_env *env, char *line)
 {
-    size_t length;
-
-    length = p101_strlen(env, line);
-    while(length > 0U && (line[length - 1U] == '\n' || line[length - 1U] == '\r'))
-    {
-        line[length - 1U] = '\0';
-        length--;
-    }
+    line[p101_strcspn(env, line, "\r\n")] = '\0';
 }
 
 static void write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
