@@ -358,30 +358,27 @@ static int run_p101_error_path_walk(const struct p101_env *env, struct p101_erro
     char  *tool_argv[MAX_TOOL_ARGS];
     char   walk_path[PATH_LEN];
     char   fault_prefix[PATH_LEN];
+    char   run_path[PATH_LEN];
     char   observe_path[PATH_LEN];
-    char   tracker_path[PATH_LEN];
-    char   concurrency_path[PATH_LEN];
-    char   trace_path[PATH_LEN];
-    char   report_path[PATH_LEN];
+    char   analyze_path[PATH_LEN];
+    char   model_path[PATH_LEN];
     char   fault_count[UINT_TEXT_LEN];
-    char   count_option[]       = "-n";
-    char   prefix_option[]      = "-l";
-    char   observe_option[]     = "-O";
-    char   tracker_option[]     = "-r";
-    char   concurrency_option[] = "-d";
-    char   trace_option[]       = "-t";
-    char   report_option[]      = "-p";
-    char   separator[]          = "--";
+    char   count_option[]   = "-n";
+    char   prefix_option[]  = "-l";
+    char   run_option[]     = "-U";
+    char   observe_option[] = "-O";
+    char   analyze_option[] = "-Y";
+    char   model_option[]   = "-B";
+    char   separator[]      = "--";
     size_t index;
 
     P101_TRACE_SCOPE(env);
     p101_doctor_copy_text(env, walk_path, args->p101_error_path_walk);
     p101_doctor_copy_text(env, fault_prefix, paths->fault_prefix);
+    p101_doctor_copy_text(env, run_path, args->p101_run);
     p101_doctor_copy_text(env, observe_path, args->p101_observe);
-    p101_doctor_copy_text(env, tracker_path, args->resource_tracker);
-    p101_doctor_copy_text(env, concurrency_path, args->p101_sync_check);
-    p101_doctor_copy_text(env, trace_path, args->p101_trace);
-    p101_doctor_copy_text(env, report_path, args->p101_report);
+    p101_doctor_copy_text(env, analyze_path, args->p101_analyze);
+    p101_doctor_copy_text(env, model_path, args->event_model);
     p101_snprintf(env, err, fault_count, sizeof(fault_count), "%u", args->fault_count);
 
     index              = 0;
@@ -390,16 +387,14 @@ static int run_p101_error_path_walk(const struct p101_env *env, struct p101_erro
     tool_argv[index++] = fault_count;
     tool_argv[index++] = prefix_option;
     tool_argv[index++] = fault_prefix;
+    tool_argv[index++] = run_option;
+    tool_argv[index++] = run_path;
     tool_argv[index++] = observe_option;
     tool_argv[index++] = observe_path;
-    tool_argv[index++] = tracker_option;
-    tool_argv[index++] = tracker_path;
-    tool_argv[index++] = concurrency_option;
-    tool_argv[index++] = concurrency_path;
-    tool_argv[index++] = trace_option;
-    tool_argv[index++] = trace_path;
-    tool_argv[index++] = report_option;
-    tool_argv[index++] = report_path;
+    tool_argv[index++] = analyze_option;
+    tool_argv[index++] = analyze_path;
+    tool_argv[index++] = model_option;
+    tool_argv[index++] = model_path;
     tool_argv[index++] = separator;
 
     for(int i = 0; i < args->command_argc; i++)

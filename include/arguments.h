@@ -19,7 +19,10 @@ struct arguments
     const char  *p101_wrapper_audit;
     const char  *p101_error_contract;
     const char  *p101_module_map;
+    const char  *p101_run;
     const char  *p101_observe;
+    const char  *p101_analyze;
+    const char  *event_model;
     const char  *p101_error_path_walk;
     const char  *resource_tracker;
     const char  *p101_sync_check;

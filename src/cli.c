@@ -19,7 +19,10 @@ void p101_doctor_arguments_init(const struct p101_env *env, struct arguments *ar
     args->p101_wrapper_audit   = DEFAULT_WRAPPER_AUDIT;
     args->p101_error_contract  = DEFAULT_ERROR_CONTRACT;
     args->p101_module_map      = DEFAULT_MODULE_MAP;
+    args->p101_run             = DEFAULT_RUN_PATH;
     args->p101_observe         = DEFAULT_OBSERVE_PATH;
+    args->p101_analyze         = DEFAULT_ANALYZE_PATH;
+    args->event_model          = DEFAULT_MODEL_PATH;
     args->p101_error_path_walk = DEFAULT_ERROR_WALK_PATH;
     args->resource_tracker     = DEFAULT_TRACKER_PATH;
     args->p101_sync_check      = DEFAULT_CONCURRENCY_PATH;
@@ -47,9 +50,9 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
 
     while(
 #ifdef P101_DOCTOR_TESTING
-        (opt = (forced_option == NULL) ? p101_getopt(env, argc, argv, ":hvSxo:s:n:C:A:E:M:O:W:r:d:t:p:") : (unsigned char)*forced_option) != -1 &&
+        (opt = (forced_option == NULL) ? p101_getopt(env, argc, argv, ":hvSxo:s:n:C:A:E:M:U:O:Y:B:W:r:d:t:p:") : (unsigned char)*forced_option) != -1 &&
 #else
-        (opt = p101_getopt(env, argc, argv, ":hvSxo:s:n:C:A:E:M:O:W:r:d:t:p:")) != -1 &&
+        (opt = p101_getopt(env, argc, argv, ":hvSxo:s:n:C:A:E:M:U:O:Y:B:W:r:d:t:p:")) != -1 &&
 #endif
         p101_error_has_no_error(err))
     {
@@ -125,9 +128,24 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
                 args->p101_module_map = optarg;
                 break;
             }
+            case 'U':
+            {
+                args->p101_run = optarg;
+                break;
+            }
             case 'O':
             {
                 args->p101_observe = optarg;
+                break;
+            }
+            case 'Y':
+            {
+                args->p101_analyze = optarg;
+                break;
+            }
+            case 'B':
+            {
+                args->event_model = optarg;
                 break;
             }
             case 'W':
@@ -263,9 +281,27 @@ void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *
         goto done;
     }
 
+    if(!args->source_only && (args->p101_run == NULL || args->p101_run[0] == '\0'))
+    {
+        P101_ERROR_RAISE_USER(err, "The p101-run path must not be empty.", ERR_USAGE);
+        goto done;
+    }
+
     if(!args->source_only && (args->p101_observe == NULL || args->p101_observe[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-observe path must not be empty.", ERR_USAGE);
+        goto done;
+    }
+
+    if(!args->source_only && (args->p101_analyze == NULL || args->p101_analyze[0] == '\0'))
+    {
+        P101_ERROR_RAISE_USER(err, "The p101-analyze path must not be empty.", ERR_USAGE);
+        goto done;
+    }
+
+    if(!args->source_only && (args->event_model == NULL || args->event_model[0] == '\0'))
+    {
+        P101_ERROR_RAISE_USER(err, "The p101-event-model path must not be empty.", ERR_USAGE);
         goto done;
     }
 
@@ -325,7 +361,7 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
         env,
         err,
         stderr,
-        "Usage: %s [-h] [-v] [-S] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-C <compile_commands.json>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
+        "Usage: %s [-h] [-v] [-S] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-C <compile_commands.json>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-U <p101-run>] [-O <p101-observe>] [-Y <p101-analyze>] [-B <p101-event-model>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
         program_name);
     p101_fputs(env, err, "\n", stderr);
     p101_fputs(env, err, "Run a p101 program through wrapper, observation, and fault-injected error-path checks.\n", stderr);
@@ -341,7 +377,10 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
     p101_fputs(env, err, "  -A <p101-wrapper-audit> p101-wrapper-audit executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -E <p101-error-contract> p101-error-contract executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -M <p101-module-map>    p101-module-map executable; default resolves through PATH\n", stderr);
+    p101_fputs(env, err, "  -U <p101-run>           Shared capture/analyze driver used by the error-path walker\n", stderr);
     p101_fputs(env, err, "  -O <p101-observe>       p101-observe executable; default resolves through PATH\n", stderr);
+    p101_fputs(env, err, "  -Y <p101-analyze>       Shared policy-analysis driver used by the error-path walker\n", stderr);
+    p101_fputs(env, err, "  -B <p101-event-model>   Shared event-model builder used by the error-path walker\n", stderr);
     p101_fputs(env, err, "  -W <p101-error-path-walk> p101-error-path-walk executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -r <p101-resource-tracker> p101-resource-tracker executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "  -d <p101-sync-check>   p101-sync-check executable; default resolves through PATH\n", stderr);

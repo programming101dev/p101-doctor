@@ -105,7 +105,10 @@ void p101_doctor_write_manifest_file(const struct p101_env *env, struct p101_err
     p101_fprintf(env, err, stream, "p101_wrapper_audit=%s\n", args->p101_wrapper_audit);
     p101_fprintf(env, err, stream, "p101_error_contract=%s\n", args->p101_error_contract);
     p101_fprintf(env, err, stream, "p101_module_map=%s\n", args->p101_module_map);
+    p101_fprintf(env, err, stream, "p101_run=%s\n", args->p101_run);
     p101_fprintf(env, err, stream, "p101_observe=%s\n", args->p101_observe);
+    p101_fprintf(env, err, stream, "p101_analyze=%s\n", args->p101_analyze);
+    p101_fprintf(env, err, stream, "p101_event_model=%s\n", args->event_model);
     p101_fprintf(env, err, stream, "p101_error_path_walk=%s\n", args->p101_error_path_walk);
     p101_fprintf(env, err, stream, "p101_resource_tracker=%s\n", args->resource_tracker);
     p101_fprintf(env, err, stream, "p101_sync_check=%s\n", args->p101_sync_check);

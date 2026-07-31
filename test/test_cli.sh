@@ -32,7 +32,7 @@ esac
 exit "$status"
 SCRIPT
 chmod +x "$fake"
-for name in p101-wrapper-audit p101-error-contract p101-module-map p101-observe p101-error-path-walk p101-resource-tracker p101-sync-check p101-trace p101-report; do
+for name in p101-wrapper-audit p101-error-contract p101-module-map p101-run.py p101-observe p101-analyze.py p101-event-model p101-error-path-walk p101-resource-tracker p101-sync-check p101-trace p101-report; do
   ln -s "$fake" "$work/$name"
 done
 
@@ -47,7 +47,8 @@ run_expect() {
 }
 
 common=(-A "$work/p101-wrapper-audit" -E "$work/p101-error-contract"
-  -M "$work/p101-module-map" -O "$work/p101-observe"
+  -M "$work/p101-module-map" -U "$work/p101-run.py" -O "$work/p101-observe"
+  -Y "$work/p101-analyze.py" -B "$work/p101-event-model"
   -W "$work/p101-error-path-walk" -r "$work/p101-resource-tracker"
   -d "$work/p101-sync-check" -t "$work/p101-trace" -p "$work/p101-report")
 

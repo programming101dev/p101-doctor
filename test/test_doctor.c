@@ -93,6 +93,9 @@ static void test_parse_repeated_source_paths(void)
     TEST_ASSERT_EQUAL_STRING("./program", args.command_argv[0]);
     TEST_ASSERT_EQUAL_STRING(DEFAULT_WRAPPER_AUDIT, args.p101_wrapper_audit);
     TEST_ASSERT_EQUAL_STRING(DEFAULT_ERROR_CONTRACT, args.p101_error_contract);
+    TEST_ASSERT_EQUAL_STRING(DEFAULT_RUN_PATH, args.p101_run);
+    TEST_ASSERT_EQUAL_STRING(DEFAULT_ANALYZE_PATH, args.p101_analyze);
+    TEST_ASSERT_EQUAL_STRING(DEFAULT_MODEL_PATH, args.event_model);
 }
 
 static void expect_invalid(struct arguments *args)
@@ -152,7 +155,10 @@ static void test_argument_validation_and_conversion(void)
     EXPECT_EMPTY_FIELD(p101_wrapper_audit);
     EXPECT_EMPTY_FIELD(p101_error_contract);
     EXPECT_EMPTY_FIELD(p101_module_map);
+    EXPECT_EMPTY_FIELD(p101_run);
     EXPECT_EMPTY_FIELD(p101_observe);
+    EXPECT_EMPTY_FIELD(p101_analyze);
+    EXPECT_EMPTY_FIELD(event_model);
     EXPECT_EMPTY_FIELD(p101_error_path_walk);
     EXPECT_EMPTY_FIELD(resource_tracker);
     EXPECT_EMPTY_FIELD(p101_sync_check);
@@ -170,7 +176,10 @@ static void test_argument_validation_and_conversion(void)
     EXPECT_NULL_FIELD(p101_wrapper_audit);
     EXPECT_NULL_FIELD(p101_error_contract);
     EXPECT_NULL_FIELD(p101_module_map);
+    EXPECT_NULL_FIELD(p101_run);
     EXPECT_NULL_FIELD(p101_observe);
+    EXPECT_NULL_FIELD(p101_analyze);
+    EXPECT_NULL_FIELD(event_model);
     EXPECT_NULL_FIELD(p101_error_path_walk);
     EXPECT_NULL_FIELD(resource_tracker);
     EXPECT_NULL_FIELD(p101_sync_check);
@@ -179,7 +188,10 @@ static void test_argument_validation_and_conversion(void)
 #undef EXPECT_NULL_FIELD
 
     args.source_only          = true;
+    args.p101_run             = "";
     args.p101_observe         = "";
+    args.p101_analyze         = "";
+    args.event_model          = "";
     args.p101_error_path_walk = "";
     args.resource_tracker     = "";
     args.p101_sync_check      = "";

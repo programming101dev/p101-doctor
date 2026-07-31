@@ -27,7 +27,8 @@ static p101 source-contract checks.
 ```sh
 p101-doctor [-h] [-v] [-S] [-x] [-o <doctor-dir>] [-s <source-path>]... [-C <compile_commands.json>] [-n <count>] \
     [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] \
-    [-O <p101-observe>] [-W <p101-error-path-walk>] \
+    [-U <p101-run>] [-O <p101-observe>] [-Y <p101-analyze>] \
+    [-B <p101-event-model>] [-W <p101-error-path-walk>] \
     [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] \
     -- <command> [args...]
 ```
