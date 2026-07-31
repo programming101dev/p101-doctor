@@ -7,8 +7,8 @@
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
-#include <p101_posix/p101_stdlib.h>
-#include <p101_posix/p101_unistd.h>
+#include <p101_filesystem/filesystem.h>
+#include <p101_process/process.h>
 #include <p101_util/tool_run.h>
 #include <stdio.h>
 
@@ -22,7 +22,6 @@ static int  run_p101_module_map(const struct p101_env *env, struct p101_error *e
 static int  run_p101_observe(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
 static int  run_p101_error_path_walk(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
 static int  run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
-static void redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path);
 static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err);
 static void setup_tool_child(const struct p101_env *env, struct p101_error *err, void *context);
 
@@ -418,12 +417,6 @@ static int run_tool_capture(const struct p101_env *env, struct p101_error *err, 
     options.child_setup         = setup_tool_child;
     options.child_setup_context = NULL;
     return p101_tool_run_capture(env, err, tool_argv, &options);
-}
-
-static void redirect_child_output(const struct p101_env *env, struct p101_error *err, const char *stdout_path, const char *stderr_path)
-{
-    P101_TRACE_SCOPE(env);
-    p101_tool_run_redirect(env, err, stdout_path, stderr_path, REPORT_FILE_MODE);
 }
 
 static void setup_tool_child(const struct p101_env *env, struct p101_error *err, void *context)
