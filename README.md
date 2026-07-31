@@ -16,13 +16,16 @@ program through:
 
 The lower-level tools remain the source of truth. `p101-doctor` gives students
 and reviewers one command that leaves behind a readable index of the whole run.
+Use `-S` for the source/module preflight only. The `p101 doctor` dispatcher
+selects this focused mode by default; `p101 check` owns the complete teaching
+workflow, and `p101 doctor-full` retains the compatibility all-in-one path.
 Use `-x` when you want module, observation, and error-path checks without the
 static p101 source-contract checks.
 
 ## Usage
 
 ```sh
-p101-doctor [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-C <compile_commands.json>] [-n <count>] \
+p101-doctor [-h] [-v] [-S] [-x] [-o <doctor-dir>] [-s <source-path>]... [-C <compile_commands.json>] [-n <count>] \
     [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] \
     [-O <p101-observe>] [-W <p101-error-path-walk>] \
     [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] \
@@ -33,6 +36,7 @@ Examples:
 
 ```sh
 p101-doctor -- ./my-program config.txt
+p101-doctor -S -s src -s include -- ./my-program
 p101-doctor -x -- ./my-program config.txt
 p101-doctor -o doctor -s src -s include -n 32 -- ./my-program
 p101-doctor -C build-clang/compile_commands.json -s src -s include -- ./my-program

@@ -47,9 +47,9 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
 
     while(
 #ifdef P101_DOCTOR_TESTING
-        (opt = (forced_option == NULL) ? p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:d:t:p:") : (unsigned char)*forced_option) != -1 &&
+        (opt = (forced_option == NULL) ? p101_getopt(env, argc, argv, ":hvSxo:s:n:C:A:E:M:O:W:r:d:t:p:") : (unsigned char)*forced_option) != -1 &&
 #else
-        (opt = p101_getopt(env, argc, argv, ":hvxo:s:n:C:A:E:M:O:W:r:d:t:p:")) != -1 &&
+        (opt = p101_getopt(env, argc, argv, ":hvSxo:s:n:C:A:E:M:O:W:r:d:t:p:")) != -1 &&
 #endif
         p101_error_has_no_error(err))
     {
@@ -65,6 +65,11 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             case 'v':
             {
                 args->verbose = true;
+                break;
+            }
+            case 'S':
+            {
+                args->source_only = true;
                 break;
             }
             case 'x':
@@ -258,37 +263,37 @@ void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *
         goto done;
     }
 
-    if(args->p101_observe == NULL || args->p101_observe[0] == '\0')
+    if(!args->source_only && (args->p101_observe == NULL || args->p101_observe[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-observe path must not be empty.", ERR_USAGE);
         goto done;
     }
 
-    if(args->p101_error_path_walk == NULL || args->p101_error_path_walk[0] == '\0')
+    if(!args->source_only && (args->p101_error_path_walk == NULL || args->p101_error_path_walk[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-error-path-walk path must not be empty.", ERR_USAGE);
         goto done;
     }
 
-    if(args->resource_tracker == NULL || args->resource_tracker[0] == '\0')
+    if(!args->source_only && (args->resource_tracker == NULL || args->resource_tracker[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-resource-tracker path must not be empty.", ERR_USAGE);
         goto done;
     }
 
-    if(args->p101_sync_check == NULL || args->p101_sync_check[0] == '\0')
+    if(!args->source_only && (args->p101_sync_check == NULL || args->p101_sync_check[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-sync-check path must not be empty.", ERR_USAGE);
         goto done;
     }
 
-    if(args->p101_trace == NULL || args->p101_trace[0] == '\0')
+    if(!args->source_only && (args->p101_trace == NULL || args->p101_trace[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-trace path must not be empty.", ERR_USAGE);
         goto done;
     }
 
-    if(args->p101_report == NULL || args->p101_report[0] == '\0')
+    if(!args->source_only && (args->p101_report == NULL || args->p101_report[0] == '\0'))
     {
         P101_ERROR_RAISE_USER(err, "The p101-report path must not be empty.", ERR_USAGE);
         goto done;
@@ -320,13 +325,14 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
         env,
         err,
         stderr,
-        "Usage: %s [-h] [-v] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-C <compile_commands.json>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
+        "Usage: %s [-h] [-v] [-S] [-x] [-o <doctor-dir>] [-s <source-path>]... [-n <count>] [-C <compile_commands.json>] [-A <p101-wrapper-audit>] [-E <p101-error-contract>] [-M <p101-module-map>] [-O <p101-observe>] [-W <p101-error-path-walk>] [-r <p101-resource-tracker>] [-d <p101-sync-check>] [-t <p101-trace>] [-p <p101-report>] -- <command> [args...]\n",
         program_name);
     p101_fputs(env, err, "\n", stderr);
     p101_fputs(env, err, "Run a p101 program through wrapper, observation, and fault-injected error-path checks.\n", stderr);
     p101_fputs(env, err, "\nOptions:\n", stderr);
     p101_fputs(env, err, "  -h                      Show this help\n", stderr);
     p101_fputs(env, err, "  -v                      Enable p101 tracing inside p101-doctor\n", stderr);
+    p101_fputs(env, err, "  -S                      Run source/module preflight only; do not execute the command\n", stderr);
     p101_fputs(env, err, "  -x                      Skip static p101 source-contract checks; still run module, observe, and error-path checks\n", stderr);
     p101_fputs(env, err, "  -o <doctor-dir>         Output directory; default is p101-doctor-<pid>\n", stderr);
     p101_fputs(env, err, "  -s <source-path>        Source/header path to scan; repeatable; default is .\n", stderr);

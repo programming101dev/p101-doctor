@@ -60,6 +60,8 @@ P101_DOCTOR_FAKE_STATUS=1 run_expect 1 -o "$work/findings" "${common[@]}" -- /us
 P101_DOCTOR_FAKE_STATUS=2 run_expect 2 -o "$work/trouble" "${common[@]}" -- /usr/bin/true
 run_expect 0 -x -o "$work/skip" "${common[@]}" -- /usr/bin/true
 run_expect 0 -x -C "$work/compile_commands.json" -o "$work/skip-explicit-db" "${common[@]}" -- /usr/bin/true
+P101_DOCTOR_OBSERVE_STATUS=2 P101_DOCTOR_WALK_STATUS=2 \
+  run_expect 0 -S -o "$work/source-only" "${common[@]}" -- /usr/bin/true
 P101_DOCTOR_TEST_OPTION=@ run_expect 2 -x -o "$work/forced-option" "${common[@]}" -- /usr/bin/true
 P101_DOCTOR_TEST_OPTION=$'\001' run_expect 2 -x -o "$work/forced-control-option" "${common[@]}" -- /usr/bin/true
 for variable in P101_DOCTOR_WRAPPER_STATUS P101_DOCTOR_CONTRACT_STATUS P101_DOCTOR_MODULE_STATUS P101_DOCTOR_OBSERVE_STATUS P101_DOCTOR_WALK_STATUS; do

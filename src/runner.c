@@ -51,7 +51,10 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
         goto done;
     }
 
-    p101_doctor_create_dir(env, err, paths.fault_dir);
+    if(!args->source_only)
+    {
+        p101_doctor_create_dir(env, err, paths.fault_dir);
+    }
     p101_doctor_write_command_file(env, err, paths.command, args->command_argv);
     p101_doctor_write_manifest_file(env, err, paths.manifest, args, &paths);
 
@@ -84,18 +87,21 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
         goto done;
     }
 
-    result.observe_status = run_p101_observe(env, err, args, &paths);
-
-    if(p101_error_has_error(err))
+    if(!args->source_only)
     {
-        goto done;
-    }
+        result.observe_status = run_p101_observe(env, err, args, &paths);
 
-    result.fault_walk_status = run_p101_error_path_walk(env, err, args, &paths);
+        if(p101_error_has_error(err))
+        {
+            goto done;
+        }
 
-    if(p101_error_has_error(err))
-    {
-        goto done;
+        result.fault_walk_status = run_p101_error_path_walk(env, err, args, &paths);
+
+        if(p101_error_has_error(err))
+        {
+            goto done;
+        }
     }
 
     p101_doctor_write_summary_file(env, err, args, &paths, &result);
@@ -109,14 +115,14 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
     p101_printf(env, err, "p101-doctor: wrote doctor report to %s\n", paths.dir);
 
     if((!args->skip_source_contracts && (!p101_doctor_status_is_acceptable(result.wrapper_status) || !p101_doctor_status_is_acceptable(result.error_contract_status))) || !p101_doctor_status_is_acceptable(result.module_status) ||
-       !p101_doctor_status_is_acceptable(result.observe_status) || !p101_doctor_status_is_acceptable(result.fault_walk_status))
+       (!args->source_only && (!p101_doctor_status_is_acceptable(result.observe_status) || !p101_doctor_status_is_acceptable(result.fault_walk_status))))
     {
         ret_val = EXIT_TROUBLE;
         goto done;
     }
 
     if((!args->skip_source_contracts && (p101_doctor_status_has_findings(result.wrapper_status) || p101_doctor_status_has_findings(result.error_contract_status))) || p101_doctor_status_has_findings(result.module_status) ||
-       p101_doctor_status_has_findings(result.observe_status) || p101_doctor_status_has_findings(result.fault_walk_status))
+       (!args->source_only && (p101_doctor_status_has_findings(result.observe_status) || p101_doctor_status_has_findings(result.fault_walk_status))))
     {
         ret_val = EXIT_FINDINGS;
         goto done;

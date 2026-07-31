@@ -77,12 +77,13 @@ static void test_make_doctor_paths_uses_requested_directory(void)
 static void test_parse_repeated_source_paths(void)
 {
     struct arguments args;
-    char            *argv[] = {"p101-doctor", "-s", "src", "-s", "include", "-x", "--", "./program", NULL};
+    char            *argv[] = {"p101-doctor", "-s", "src", "-s", "include", "-S", "-x", "--", "./program", NULL};
 
     p101_doctor_arguments_init(env, &args);
-    p101_doctor_parse_arguments(env, error, 8, argv, &args);
+    p101_doctor_parse_arguments(env, error, 9, argv, &args);
 
     TEST_ASSERT_FALSE(p101_error_has_error(error));
+    TEST_ASSERT_TRUE(args.source_only);
     TEST_ASSERT_TRUE(args.skip_source_contracts);
     TEST_ASSERT_TRUE(args.source_paths_set);
     TEST_ASSERT_EQUAL_INT(2, args.source_count);
@@ -177,6 +178,16 @@ static void test_argument_validation_and_conversion(void)
     EXPECT_NULL_FIELD(p101_report);
 #undef EXPECT_NULL_FIELD
 
+    args.source_only          = true;
+    args.p101_observe         = "";
+    args.p101_error_path_walk = "";
+    args.resource_tracker     = "";
+    args.p101_sync_check      = "";
+    args.p101_trace           = "";
+    args.p101_report          = "";
+    p101_doctor_check_arguments(env, error, &args);
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+
     args.skip_source_contracts = true;
     args.p101_wrapper_audit    = "";
     args.p101_error_contract   = "";
@@ -257,6 +268,11 @@ static void test_source_inputs_status_and_reports(void)
     args.skip_source_contracts = true;
     args.source_count          = 1;
     args.source_paths[0]       = NULL;
+    p101_doctor_write_summary_file(env, error, &args, &paths, &result);
+    p101_doctor_write_json_file(env, error, &args, &paths, &result);
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+
+    args.source_only = true;
     p101_doctor_write_summary_file(env, error, &args, &paths, &result);
     p101_doctor_write_json_file(env, error, &args, &paths, &result);
     TEST_ASSERT_FALSE(p101_error_has_error(error));
