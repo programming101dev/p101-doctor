@@ -9,7 +9,6 @@ enum
     STATIC_TOOL_RESERVE = 12,
     MODULE_MAP_RESERVE  = 10,
     TOOL_ARG_RESERVE    = 15,
-    UINT_TEXT_LEN       = 32,
     DEFAULT_DIR_MODE    = 0755,
     REPORT_FILE_MODE    = 0644,
     EXEC_FAILURE        = 127,
@@ -24,24 +23,4 @@ enum
 #define DEFAULT_WRAPPER_ALLOW_FILE ".p101-wrapper-audit-allow"
 #define DEFAULT_ERROR_CONTRACT "p101-error-contract"
 #define DEFAULT_MODULE_MAP "p101-module-map"
-#define DEFAULT_RUN_PATH "p101-run.py"
-#define DEFAULT_OBSERVE_PATH "p101-observe"
-#define DEFAULT_ANALYZE_PATH "p101-analyze.py"
-#define DEFAULT_MODEL_PATH "p101-event-model"
-#define DEFAULT_ERROR_WALK_PATH "p101-error-path-walk"
-#define DEFAULT_TRACKER_PATH "p101-resource-tracker"
-#define DEFAULT_CONCURRENCY_PATH "p101-sync-check"
-#define DEFAULT_TRACE_PATH "p101-trace"
-#define DEFAULT_REPORT_PATH "p101-report"
-#define DEFAULT_FAULT_COUNT "16"
-
-#define RESOURCE_LOG_ENV "P101_RESOURCE_LOG"
-#define CALL_LOG_ENV "P101_CALL_LOG"
-#define CALL_LOG_ARGS_ENV "P101_CALL_LOG_ARGS"
-#define CALL_LOG_RESULT_ENV "P101_CALL_LOG_RESULT"
-#define FAULT_CALL_ENV "P101_FAULT_CALL"
-#define FAULT_ERRNO_ENV "P101_FAULT_ERRNO"
-#define FAULT_NAME_ENV "P101_FAULT_NAME"
-#define FAULT_LOG_ENV "P101_FAULT_LOG"
-
 #endif    // P101_DOCTOR_CONSTANTS_H

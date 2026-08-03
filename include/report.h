@@ -11,8 +11,6 @@ struct doctor_result
     int wrapper_status;
     int error_contract_status;
     int module_status;
-    int observe_status;
-    int fault_walk_status;
 };
 
 void p101_doctor_write_summary_file(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths, const struct doctor_result *result);

@@ -19,13 +19,6 @@ struct doctor_paths
     char module_stderr[PATH_LEN];
     char module_report[PATH_LEN];
     char module_json[PATH_LEN];
-    char observe_dir[PATH_LEN];
-    char observe_stdout[PATH_LEN];
-    char observe_stderr[PATH_LEN];
-    char fault_dir[PATH_LEN];
-    char fault_prefix[PATH_LEN];
-    char fault_stdout[PATH_LEN];
-    char fault_stderr[PATH_LEN];
     char summary[PATH_LEN];
     char json[PATH_LEN];
     char manifest[PATH_LEN];

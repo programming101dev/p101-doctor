@@ -34,16 +34,9 @@ void p101_doctor_make_paths(const struct p101_env *env, struct p101_error *err, 
     join_path(env, err, paths->module_stderr, paths->dir, "module-map.stderr.txt");
     join_path(env, err, paths->module_report, paths->dir, "module-map.md");
     join_path(env, err, paths->module_json, paths->dir, "module-map.json");
-    join_path(env, err, paths->observe_dir, paths->dir, "observe");
-    join_path(env, err, paths->observe_stdout, paths->dir, "observe.stdout.txt");
-    join_path(env, err, paths->observe_stderr, paths->dir, "observe.stderr.txt");
-    join_path(env, err, paths->fault_dir, paths->dir, "fault-walk");
-    join_path(env, err, paths->fault_stdout, paths->dir, "error-path-walk.stdout.txt");
-    join_path(env, err, paths->fault_stderr, paths->dir, "error-path-walk.stderr.txt");
     join_path(env, err, paths->summary, paths->dir, "summary.md");
     join_path(env, err, paths->json, paths->dir, "doctor.json");
     join_path(env, err, paths->manifest, paths->dir, "manifest.txt");
-    join_path(env, err, paths->fault_prefix, paths->fault_dir, "case");
 }
 
 void p101_doctor_create_dir(const struct p101_env *env, struct p101_error *err, const char *path)
@@ -98,22 +91,12 @@ void p101_doctor_write_manifest_file(const struct p101_env *env, struct p101_err
         p101_fprintf(env, err, stream, "%s%s", (i == 0) ? "" : " ", args->source_paths[i]);
     }
     p101_fputc(env, err, '\n', stream);
-    p101_fprintf(env, err, stream, "fault_count=%u\n", args->fault_count);
     p101_fprintf(env, err, stream, "compile_database=%s\n", args->compile_db_path == NULL ? "auto" : args->compile_db_path);
     p101_fprintf(env, err, stream, "source_facts=%s\n", paths->facts);
     p101_fprintf(env, err, stream, "source_inputs=%s\n", paths->input_manifest);
     p101_fprintf(env, err, stream, "p101_wrapper_audit=%s\n", args->p101_wrapper_audit);
     p101_fprintf(env, err, stream, "p101_error_contract=%s\n", args->p101_error_contract);
     p101_fprintf(env, err, stream, "p101_module_map=%s\n", args->p101_module_map);
-    p101_fprintf(env, err, stream, "p101_run=%s\n", args->p101_run);
-    p101_fprintf(env, err, stream, "p101_observe=%s\n", args->p101_observe);
-    p101_fprintf(env, err, stream, "p101_analyze=%s\n", args->p101_analyze);
-    p101_fprintf(env, err, stream, "p101_event_model=%s\n", args->event_model);
-    p101_fprintf(env, err, stream, "p101_error_path_walk=%s\n", args->p101_error_path_walk);
-    p101_fprintf(env, err, stream, "p101_resource_tracker=%s\n", args->resource_tracker);
-    p101_fprintf(env, err, stream, "p101_sync_check=%s\n", args->p101_sync_check);
-    p101_fprintf(env, err, stream, "p101_trace=%s\n", args->p101_trace);
-    p101_fprintf(env, err, stream, "p101_report=%s\n", args->p101_report);
     p101_fputs(env, err, "command=", stream);
 
     for(size_t i = 0; args->command_argv[i] != NULL; i++)

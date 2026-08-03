@@ -58,8 +58,6 @@ static void test_make_doctor_paths_uses_requested_directory(void)
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.stdout.txt", paths.module_stdout);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.stderr.txt", paths.module_stderr);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.md", paths.module_report);
-    TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/observe", paths.observe_dir);
-    TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/fault-walk/case", paths.fault_prefix);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/summary.md", paths.summary);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/manifest.txt", paths.manifest);
 
@@ -77,13 +75,12 @@ static void test_make_doctor_paths_uses_requested_directory(void)
 static void test_parse_repeated_source_paths(void)
 {
     struct arguments args;
-    char            *argv[] = {"p101-doctor", "-s", "src", "-s", "include", "-S", "-x", "--", "./program", NULL};
+    char            *argv[] = {"p101-doctor", "-s", "src", "-s", "include", "-x", "--", "./program", NULL};
 
     p101_doctor_arguments_init(env, &args);
-    p101_doctor_parse_arguments(env, error, 9, argv, &args);
+    p101_doctor_parse_arguments(env, error, 8, argv, &args);
 
     TEST_ASSERT_FALSE(p101_error_has_error(error));
-    TEST_ASSERT_TRUE(args.source_only);
     TEST_ASSERT_TRUE(args.skip_source_contracts);
     TEST_ASSERT_TRUE(args.source_paths_set);
     TEST_ASSERT_EQUAL_INT(2, args.source_count);
@@ -93,9 +90,6 @@ static void test_parse_repeated_source_paths(void)
     TEST_ASSERT_EQUAL_STRING("./program", args.command_argv[0]);
     TEST_ASSERT_EQUAL_STRING(DEFAULT_WRAPPER_AUDIT, args.p101_wrapper_audit);
     TEST_ASSERT_EQUAL_STRING(DEFAULT_ERROR_CONTRACT, args.p101_error_contract);
-    TEST_ASSERT_EQUAL_STRING(DEFAULT_RUN_PATH, args.p101_run);
-    TEST_ASSERT_EQUAL_STRING(DEFAULT_ANALYZE_PATH, args.p101_analyze);
-    TEST_ASSERT_EQUAL_STRING(DEFAULT_MODEL_PATH, args.event_model);
 }
 
 static void expect_invalid(struct arguments *args)
@@ -133,11 +127,6 @@ static void test_argument_validation_and_conversion(void)
     args.source_paths[0] = "";
     expect_invalid(&args);
     args.source_paths[0] = ".";
-    args.fault_count_str = NULL;
-    expect_invalid(&args);
-    args.fault_count_str = "";
-    expect_invalid(&args);
-    args.fault_count_str = "1";
     args.compile_db_path = "";
     expect_invalid(&args);
     args.compile_db_path = "db";
@@ -155,15 +144,6 @@ static void test_argument_validation_and_conversion(void)
     EXPECT_EMPTY_FIELD(p101_wrapper_audit);
     EXPECT_EMPTY_FIELD(p101_error_contract);
     EXPECT_EMPTY_FIELD(p101_module_map);
-    EXPECT_EMPTY_FIELD(p101_run);
-    EXPECT_EMPTY_FIELD(p101_observe);
-    EXPECT_EMPTY_FIELD(p101_analyze);
-    EXPECT_EMPTY_FIELD(event_model);
-    EXPECT_EMPTY_FIELD(p101_error_path_walk);
-    EXPECT_EMPTY_FIELD(resource_tracker);
-    EXPECT_EMPTY_FIELD(p101_sync_check);
-    EXPECT_EMPTY_FIELD(p101_trace);
-    EXPECT_EMPTY_FIELD(p101_report);
 #undef EXPECT_EMPTY_FIELD
 
 #define EXPECT_NULL_FIELD(field)                                                                                                                                                                                                                                   \
@@ -176,29 +156,7 @@ static void test_argument_validation_and_conversion(void)
     EXPECT_NULL_FIELD(p101_wrapper_audit);
     EXPECT_NULL_FIELD(p101_error_contract);
     EXPECT_NULL_FIELD(p101_module_map);
-    EXPECT_NULL_FIELD(p101_run);
-    EXPECT_NULL_FIELD(p101_observe);
-    EXPECT_NULL_FIELD(p101_analyze);
-    EXPECT_NULL_FIELD(event_model);
-    EXPECT_NULL_FIELD(p101_error_path_walk);
-    EXPECT_NULL_FIELD(resource_tracker);
-    EXPECT_NULL_FIELD(p101_sync_check);
-    EXPECT_NULL_FIELD(p101_trace);
-    EXPECT_NULL_FIELD(p101_report);
 #undef EXPECT_NULL_FIELD
-
-    args.source_only          = true;
-    args.p101_run             = "";
-    args.p101_observe         = "";
-    args.p101_analyze         = "";
-    args.event_model          = "";
-    args.p101_error_path_walk = "";
-    args.resource_tracker     = "";
-    args.p101_sync_check      = "";
-    args.p101_trace           = "";
-    args.p101_report          = "";
-    p101_doctor_check_arguments(env, error, &args);
-    TEST_ASSERT_FALSE(p101_error_has_error(error));
 
     args.skip_source_contracts = true;
     args.p101_wrapper_audit    = "";
@@ -206,9 +164,8 @@ static void test_argument_validation_and_conversion(void)
     p101_doctor_check_arguments(env, error, &args);
     TEST_ASSERT_FALSE(p101_error_has_error(error));
 
-    args.fault_count_str = "not-a-number";
     p101_doctor_convert_arguments(env, error, &args);
-    TEST_ASSERT_TRUE(p101_error_has_error(error));
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
 }
 
 static void test_source_inputs_status_and_reports(void)
@@ -221,7 +178,6 @@ static void test_source_inputs_status_and_reports(void)
     char                *tool_argv[MAX_SOURCE_PATHS + 2];
     char                *command[] = {"quote\" slash\\ line\nreturn\rtab\t\1\200", NULL};
     char                 dir[PATH_LEN];
-    char                 observe_summary[PATH_LEN];
     FILE                *stream;
 
     p101_doctor_arguments_init(env, &args);
@@ -230,14 +186,12 @@ static void test_source_inputs_status_and_reports(void)
     args.source_count    = 2;
     args.source_paths[0] = "src";
     args.source_paths[1] = "include";
-    args.fault_count     = 3U;
     p101_memset(env, &paths, 0, sizeof(paths));
     p101_memset(env, &result, 0, sizeof(result));
     p101_snprintf(env, error, dir, sizeof(dir), "/tmp/p101-doctor-unit-%ld", (long)p101_getpid(env));
     args.doctor_dir = dir;
     p101_doctor_make_paths(env, error, &args, &paths);
     p101_mkdir(env, error, paths.dir, 0700);
-    p101_mkdir(env, error, paths.observe_dir, 0700);
     TEST_ASSERT_FALSE(p101_error_has_error(error));
 
     p101_doctor_copy_text(env, copied, "text");
@@ -268,15 +222,9 @@ static void test_source_inputs_status_and_reports(void)
     result.wrapper_status        = 0;
     result.error_contract_status = 1 << 8;
     result.module_status         = SIGTERM;
-    result.observe_status        = 2 << 8;
-    result.fault_walk_status     = 0x7f;
     p101_doctor_write_summary_file(env, error, &args, &paths, &result);
     p101_doctor_write_json_file(env, error, &args, &paths, &result);
 
-    p101_snprintf(env, error, observe_summary, sizeof(observe_summary), "%s/summary.txt", paths.observe_dir);
-    stream = p101_fopen(env, error, observe_summary, "w");
-    p101_fputs(env, error, "ignored\r\nresources: fd=1 alloc=2\r\n", stream);
-    p101_fclose(env, error, stream);
     args.skip_source_contracts = true;
     args.source_count          = 1;
     args.source_paths[0]       = NULL;
@@ -284,15 +232,8 @@ static void test_source_inputs_status_and_reports(void)
     p101_doctor_write_json_file(env, error, &args, &paths, &result);
     TEST_ASSERT_FALSE(p101_error_has_error(error));
 
-    args.source_only = true;
-    p101_doctor_write_summary_file(env, error, &args, &paths, &result);
-    p101_doctor_write_json_file(env, error, &args, &paths, &result);
-    TEST_ASSERT_FALSE(p101_error_has_error(error));
-
-    p101_unlink(env, error, observe_summary);
     p101_unlink(env, error, paths.summary);
     p101_unlink(env, error, paths.json);
-    p101_rmdir(env, error, paths.observe_dir);
     p101_rmdir(env, error, paths.dir);
 }
 

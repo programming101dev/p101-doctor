@@ -8,22 +8,13 @@
 #include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
 #include <p101_filesystem/filesystem.h>
-#include <p101_process/process.h>
 #include <p101_util/tool_run.h>
 #include <stdio.h>
 
-#ifdef P101_DOCTOR_COVERAGE
-extern void __gcov_dump(void);
-#endif
-
-static int  run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_error_contract(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_observe(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_p101_error_path_walk(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
-static int  run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
-static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err);
-static void setup_tool_child(const struct p101_env *env, struct p101_error *err, void *context);
+static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int run_p101_error_contract(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths);
+static int run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path);
 
 int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
@@ -50,10 +41,6 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
         goto done;
     }
 
-    if(!args->source_only)
-    {
-        p101_doctor_create_dir(env, err, paths.fault_dir);
-    }
     p101_doctor_write_command_file(env, err, paths.command, args->command_argv);
     p101_doctor_write_manifest_file(env, err, paths.manifest, args, &paths);
 
@@ -86,23 +73,6 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
         goto done;
     }
 
-    if(!args->source_only)
-    {
-        result.observe_status = run_p101_observe(env, err, args, &paths);
-
-        if(p101_error_has_error(err))
-        {
-            goto done;
-        }
-
-        result.fault_walk_status = run_p101_error_path_walk(env, err, args, &paths);
-
-        if(p101_error_has_error(err))
-        {
-            goto done;
-        }
-    }
-
     p101_doctor_write_summary_file(env, err, args, &paths, &result);
     p101_doctor_write_json_file(env, err, args, &paths, &result);
 
@@ -113,15 +83,13 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
 
     p101_printf(env, err, "p101-doctor: wrote doctor report to %s\n", paths.dir);
 
-    if((!args->skip_source_contracts && (!p101_doctor_status_is_acceptable(result.wrapper_status) || !p101_doctor_status_is_acceptable(result.error_contract_status))) || !p101_doctor_status_is_acceptable(result.module_status) ||
-       (!args->source_only && (!p101_doctor_status_is_acceptable(result.observe_status) || !p101_doctor_status_is_acceptable(result.fault_walk_status))))
+    if((!args->skip_source_contracts && (!p101_doctor_status_is_acceptable(result.wrapper_status) || !p101_doctor_status_is_acceptable(result.error_contract_status))) || !p101_doctor_status_is_acceptable(result.module_status))
     {
         ret_val = EXIT_TROUBLE;
         goto done;
     }
 
-    if((!args->skip_source_contracts && (p101_doctor_status_has_findings(result.wrapper_status) || p101_doctor_status_has_findings(result.error_contract_status))) || p101_doctor_status_has_findings(result.module_status) ||
-       (!args->source_only && (p101_doctor_status_has_findings(result.observe_status) || p101_doctor_status_has_findings(result.fault_walk_status))))
+    if((!args->skip_source_contracts && (p101_doctor_status_has_findings(result.wrapper_status) || p101_doctor_status_has_findings(result.error_contract_status))) || p101_doctor_status_has_findings(result.module_status))
     {
         ret_val = EXIT_FINDINGS;
         goto done;
@@ -304,107 +272,6 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     return ret_val;
 }
 
-static int run_p101_observe(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths)
-{
-    char  *tool_argv[MAX_TOOL_ARGS];
-    char   observe_path[PATH_LEN];
-    char   observe_dir[PATH_LEN];
-    char   tracker_path[PATH_LEN];
-    char   concurrency_path[PATH_LEN];
-    char   trace_path[PATH_LEN];
-    char   report_path[PATH_LEN];
-    char   output_option[]      = "-o";
-    char   tracker_option[]     = "-r";
-    char   concurrency_option[] = "-d";
-    char   trace_option[]       = "-t";
-    char   report_option[]      = "-p";
-    char   separator[]          = "--";
-    size_t index;
-
-    P101_TRACE_SCOPE(env);
-    p101_doctor_copy_text(env, observe_path, args->p101_observe);
-    p101_doctor_copy_text(env, observe_dir, paths->observe_dir);
-    p101_doctor_copy_text(env, tracker_path, args->resource_tracker);
-    p101_doctor_copy_text(env, concurrency_path, args->p101_sync_check);
-    p101_doctor_copy_text(env, trace_path, args->p101_trace);
-    p101_doctor_copy_text(env, report_path, args->p101_report);
-
-    index              = 0;
-    tool_argv[index++] = observe_path;
-    tool_argv[index++] = output_option;
-    tool_argv[index++] = observe_dir;
-    tool_argv[index++] = tracker_option;
-    tool_argv[index++] = tracker_path;
-    tool_argv[index++] = concurrency_option;
-    tool_argv[index++] = concurrency_path;
-    tool_argv[index++] = trace_option;
-    tool_argv[index++] = trace_path;
-    tool_argv[index++] = report_option;
-    tool_argv[index++] = report_path;
-    tool_argv[index++] = separator;
-
-    for(int i = 0; i < args->command_argc; i++)
-    {
-        tool_argv[index++] = args->command_argv[i];
-    }
-    tool_argv[index] = NULL;
-
-    return run_tool_capture(env, err, tool_argv, paths->observe_stdout, paths->observe_stderr);
-}
-
-static int run_p101_error_path_walk(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths)
-{
-    char  *tool_argv[MAX_TOOL_ARGS];
-    char   walk_path[PATH_LEN];
-    char   fault_prefix[PATH_LEN];
-    char   run_path[PATH_LEN];
-    char   observe_path[PATH_LEN];
-    char   analyze_path[PATH_LEN];
-    char   model_path[PATH_LEN];
-    char   fault_count[UINT_TEXT_LEN];
-    char   count_option[]   = "-n";
-    char   prefix_option[]  = "-l";
-    char   run_option[]     = "-U";
-    char   observe_option[] = "-O";
-    char   analyze_option[] = "-Y";
-    char   model_option[]   = "-B";
-    char   separator[]      = "--";
-    size_t index;
-
-    P101_TRACE_SCOPE(env);
-    p101_doctor_copy_text(env, walk_path, args->p101_error_path_walk);
-    p101_doctor_copy_text(env, fault_prefix, paths->fault_prefix);
-    p101_doctor_copy_text(env, run_path, args->p101_run);
-    p101_doctor_copy_text(env, observe_path, args->p101_observe);
-    p101_doctor_copy_text(env, analyze_path, args->p101_analyze);
-    p101_doctor_copy_text(env, model_path, args->event_model);
-    p101_snprintf(env, err, fault_count, sizeof(fault_count), "%u", args->fault_count);
-
-    index              = 0;
-    tool_argv[index++] = walk_path;
-    tool_argv[index++] = count_option;
-    tool_argv[index++] = fault_count;
-    tool_argv[index++] = prefix_option;
-    tool_argv[index++] = fault_prefix;
-    tool_argv[index++] = run_option;
-    tool_argv[index++] = run_path;
-    tool_argv[index++] = observe_option;
-    tool_argv[index++] = observe_path;
-    tool_argv[index++] = analyze_option;
-    tool_argv[index++] = analyze_path;
-    tool_argv[index++] = model_option;
-    tool_argv[index++] = model_path;
-    tool_argv[index++] = separator;
-
-    for(int i = 0; i < args->command_argc; i++)
-    {
-        tool_argv[index++] = args->command_argv[i];
-    }
-    tool_argv[index] = NULL;
-
-    return run_tool_capture(env, err, tool_argv, paths->fault_stdout, paths->fault_stderr);
-}
-
 static int run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path)
 {
     struct p101_tool_run_options options;
@@ -414,29 +281,7 @@ static int run_tool_capture(const struct p101_env *env, struct p101_error *err, 
     options.stderr_path         = stderr_path;
     options.diagnostic_name     = "p101-doctor";
     options.output_mode         = REPORT_FILE_MODE;
-    options.child_setup         = setup_tool_child;
+    options.child_setup         = NULL;
     options.child_setup_context = NULL;
     return p101_tool_run_capture(env, err, tool_argv, &options);
-}
-
-static void setup_tool_child(const struct p101_env *env, struct p101_error *err, void *context)
-{
-    (void)context;
-    clear_p101_observer_environment(env, err);
-#ifdef P101_DOCTOR_COVERAGE
-    __gcov_dump();
-#endif
-}
-
-static void clear_p101_observer_environment(const struct p101_env *env, struct p101_error *err)
-{
-    P101_TRACE_SCOPE(env);
-    p101_unsetenv(env, err, RESOURCE_LOG_ENV);
-    p101_unsetenv(env, err, CALL_LOG_ENV);
-    p101_unsetenv(env, err, CALL_LOG_ARGS_ENV);
-    p101_unsetenv(env, err, CALL_LOG_RESULT_ENV);
-    p101_unsetenv(env, err, FAULT_CALL_ENV);
-    p101_unsetenv(env, err, FAULT_ERRNO_ENV);
-    p101_unsetenv(env, err, FAULT_NAME_ENV);
-    p101_unsetenv(env, err, FAULT_LOG_ENV);
 }
