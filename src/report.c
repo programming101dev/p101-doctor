@@ -240,16 +240,14 @@ void p101_doctor_write_receipt_file(const struct p101_env *env, struct p101_erro
         .failed_stage     = "",
         .first_diagnostic = "",
         .checks_attempted = 3U,
-        .checks_completed = 3U,
+        .checks_completed = doctor_result_completed_checks(args, result),
         .does_not_prove   = "runtime correctness, complete wrapper instrumentation, third-party code, or unsupported compiler behavior",
     };
     if(args->skip_source_contracts)
     {
         receipt.policy_identity  = "module-map-only";
         receipt.checks_attempted = 1U;
-        receipt.checks_completed = 1U;
     }
-    receipt.checks_completed = doctor_result_completed_checks(args, result);
     if(doctor_result_has_trouble(args, result))
     {
         receipt.outcome          = P101_TOOL_OUTCOME_TOOL_ERROR;
