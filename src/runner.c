@@ -75,6 +75,8 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
 
     p101_doctor_write_summary_file(env, err, args, &paths, &result);
     p101_doctor_write_json_file(env, err, args, &paths, &result);
+    p101_doctor_write_evidence_receipt_file(env, err, args, &paths);
+    p101_doctor_write_receipt_file(env, err, args, &paths, &result);
 
     if(p101_error_has_error(err))
     {
@@ -171,12 +173,15 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
     }
     if(p101_error_has_error(err))
     {
-        return EXIT_TROUBLE;
+        ret_val = EXIT_TROUBLE;
     }
-    index            = p101_doctor_append_source_paths(tool_argv, index, source_paths, args->source_count);
-    tool_argv[index] = NULL;
+    else
+    {
+        index            = p101_doctor_append_source_paths(tool_argv, index, source_paths, args->source_count);
+        tool_argv[index] = NULL;
+        ret_val          = run_tool_capture(env, err, tool_argv, paths->wrapper_stdout, paths->wrapper_stderr);
+    }
 
-    ret_val = run_tool_capture(env, err, tool_argv, paths->wrapper_stdout, paths->wrapper_stderr);
     return ret_val;
 }
 
@@ -231,42 +236,44 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     }
     if(p101_error_has_error(err))
     {
-        return EXIT_TROUBLE;
+        ret_val = EXIT_TROUBLE;
     }
-
-    arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
-    tool_argv[arg_index] = NULL;
-
-    ret_val = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
-    if(p101_doctor_status_is_acceptable(ret_val))
+    else
     {
-        int json_status;
-
-        arg_index              = 1;
-        tool_argv[arg_index++] = json_option;
-        tool_argv[arg_index++] = output_option;
-        tool_argv[arg_index++] = json_path;
-        if(!args->skip_source_contracts)
-        {
-            tool_argv[arg_index++] = facts_option;
-            tool_argv[arg_index++] = facts_path;
-        }
-        else
-        {
-            if(compile_db_path[0] != '\0')
-            {
-                tool_argv[arg_index++] = compile_db_option;
-                tool_argv[arg_index++] = compile_db_path;
-            }
-            tool_argv[arg_index++] = fact_tool_option;
-            tool_argv[arg_index++] = audit_path;
-        }
         arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
         tool_argv[arg_index] = NULL;
-        json_status          = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
-        if(json_status != ret_val)
+
+        ret_val = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
+        if(p101_doctor_status_is_acceptable(ret_val))
         {
-            ret_val = EXIT_TROUBLE << WAIT_STATUS_SHIFT;
+            int json_status;
+
+            arg_index              = 1;
+            tool_argv[arg_index++] = json_option;
+            tool_argv[arg_index++] = output_option;
+            tool_argv[arg_index++] = json_path;
+            if(!args->skip_source_contracts)
+            {
+                tool_argv[arg_index++] = facts_option;
+                tool_argv[arg_index++] = facts_path;
+            }
+            else
+            {
+                if(compile_db_path[0] != '\0')
+                {
+                    tool_argv[arg_index++] = compile_db_option;
+                    tool_argv[arg_index++] = compile_db_path;
+                }
+                tool_argv[arg_index++] = fact_tool_option;
+                tool_argv[arg_index++] = audit_path;
+            }
+            arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
+            tool_argv[arg_index] = NULL;
+            json_status          = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
+            if(json_status != ret_val)
+            {
+                ret_val = EXIT_TROUBLE << WAIT_STATUS_SHIFT;
+            }
         }
     }
     return ret_val;

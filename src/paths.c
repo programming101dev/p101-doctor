@@ -36,6 +36,8 @@ void p101_doctor_make_paths(const struct p101_env *env, struct p101_error *err, 
     join_path(env, err, paths->module_json, paths->dir, "module-map.json");
     join_path(env, err, paths->summary, paths->dir, "summary.md");
     join_path(env, err, paths->json, paths->dir, "doctor.json");
+    join_path(env, err, paths->receipt, paths->dir, "receipt.txt");
+    join_path(env, err, paths->tool_receipt, paths->dir, "tool-receipt.json");
     join_path(env, err, paths->manifest, paths->dir, "manifest.txt");
 }
 
@@ -94,6 +96,8 @@ void p101_doctor_write_manifest_file(const struct p101_env *env, struct p101_err
     p101_fprintf(env, err, stream, "compile_database=%s\n", args->compile_db_path == NULL ? "auto" : args->compile_db_path);
     p101_fprintf(env, err, stream, "source_facts=%s\n", paths->facts);
     p101_fprintf(env, err, stream, "source_inputs=%s\n", paths->input_manifest);
+    p101_fprintf(env, err, stream, "evidence_receipt=%s\n", paths->receipt);
+    p101_fprintf(env, err, stream, "tool_receipt=%s\n", paths->tool_receipt);
     p101_fprintf(env, err, stream, "p101_wrapper_audit=%s\n", args->p101_wrapper_audit);
     p101_fprintf(env, err, stream, "p101_error_contract=%s\n", args->p101_error_contract);
     p101_fprintf(env, err, stream, "p101_module_map=%s\n", args->p101_module_map);

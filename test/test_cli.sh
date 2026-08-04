@@ -41,6 +41,10 @@ run_expect 0 --help
 run_expect 0 -h
 touch "$allow_file"
 run_expect 0 -v -o "$work/clean" -s src -s include -C "$work/compile_commands.json" "${common[@]}" -- /usr/bin/true
+grep -q '"schema":"p101-tool-run-receipt-v4"' "$work/clean/tool-receipt.json"
+grep -q '"outcome":"clean"' "$work/clean/tool-receipt.json"
+grep -q '^schema=p101-doctor-evidence-receipt-v1$' "$work/clean/receipt.txt"
+grep -q '^artifact.doctor-json=present ' "$work/clean/receipt.txt"
 rm -f "$allow_file"
 P101_DOCTOR_FAKE_STATUS=1 run_expect 1 -o "$work/findings" "${common[@]}" -- /usr/bin/true
 P101_DOCTOR_FAKE_STATUS=2 run_expect 2 -o "$work/trouble" "${common[@]}" -- /usr/bin/true

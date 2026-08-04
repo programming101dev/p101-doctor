@@ -51,6 +51,8 @@ command.txt
 manifest.txt
 summary.md
 doctor.json
+receipt.txt
+tool-receipt.json
 wrapper-audit.stdout.txt
 wrapper-audit.stderr.txt
 source-facts.tsv
@@ -82,7 +84,7 @@ project can all hide issues from the final summary.
 
 For source checks, the doctor runs one Clang AST pass through
 `p101-wrapper-audit`, writes `source-facts.tsv` plus `source-inputs.json`, and
-feeds that immutable P101FACT v2 snapshot to both `p101-error-contract` and
+feeds that immutable P101FACT v4 snapshot to both `p101-error-contract` and
 `p101-module-map`. The wrapper pass also enables its portability-header rule
 pack, so known platform-only headers are reported at the wrapper boundary
 rather than as module-structure findings. Use `-C` to pin the compilation

@@ -7,6 +7,7 @@
 #include "unity.h"
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
+#include <p101_tool_event/receipt.h>
 #include <p101_env/env.h>
 #include <p101_error/error.h>
 #include <p101_filesystem/filesystem.h>
@@ -59,6 +60,8 @@ static void test_make_doctor_paths_uses_requested_directory(void)
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.stderr.txt", paths.module_stderr);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/module-map.md", paths.module_report);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/summary.md", paths.summary);
+    TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/receipt.txt", paths.receipt);
+    TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/tool-receipt.json", paths.tool_receipt);
     TEST_ASSERT_EQUAL_STRING("/tmp/p101-doctor-test/manifest.txt", paths.manifest);
 
     {
@@ -224,16 +227,29 @@ static void test_source_inputs_status_and_reports(void)
     result.module_status         = SIGTERM;
     p101_doctor_write_summary_file(env, error, &args, &paths, &result);
     p101_doctor_write_json_file(env, error, &args, &paths, &result);
+    p101_doctor_write_evidence_receipt_file(env, error, &args, &paths);
+    p101_doctor_write_receipt_file(env, error, &args, &paths, &result);
+    {
+        struct p101_tool_run_receipt_validation validation;
+
+        TEST_ASSERT_EQUAL_INT(0, p101_tool_run_receipt_validate_file(error, paths.tool_receipt, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_BYTES, &validation));
+        TEST_ASSERT_EQUAL_INT(P101_TOOL_RECEIPT_VALID, validation.status);
+        TEST_ASSERT_EQUAL_INT(P101_TOOL_OUTCOME_TOOL_ERROR, validation.outcome);
+    }
 
     args.skip_source_contracts = true;
     args.source_count          = 1;
     args.source_paths[0]       = NULL;
     p101_doctor_write_summary_file(env, error, &args, &paths, &result);
     p101_doctor_write_json_file(env, error, &args, &paths, &result);
+    p101_doctor_write_evidence_receipt_file(env, error, &args, &paths);
+    p101_doctor_write_receipt_file(env, error, &args, &paths, &result);
     TEST_ASSERT_FALSE(p101_error_has_error(error));
 
     p101_unlink(env, error, paths.summary);
     p101_unlink(env, error, paths.json);
+    p101_unlink(env, error, paths.receipt);
+    p101_unlink(env, error, paths.tool_receipt);
     p101_rmdir(env, error, paths.dir);
 }
 

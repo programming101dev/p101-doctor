@@ -55,6 +55,7 @@ set(main_LINK_LIBRARIES
         p101_error
         p101_env
         p101_record
+        p101_tool_event
         p101_c
         p101_cli
         p101_filesystem

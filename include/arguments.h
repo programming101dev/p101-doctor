@@ -23,6 +23,7 @@ struct arguments
     bool         verbose;
     bool         skip_source_contracts;
     bool         source_paths_set;
+    bool         show_help;
 };
 
 #endif    // P101_DOCTOR_ARGUMENTS_H

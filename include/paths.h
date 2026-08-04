@@ -21,6 +21,8 @@ struct doctor_paths
     char module_json[PATH_LEN];
     char summary[PATH_LEN];
     char json[PATH_LEN];
+    char receipt[PATH_LEN];
+    char tool_receipt[PATH_LEN];
     char manifest[PATH_LEN];
 };
 

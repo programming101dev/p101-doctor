@@ -3,7 +3,6 @@
 #include "errors.h"
 #include <p101_c/p101_ctype.h>
 #include <p101_c/p101_stdio.h>
-#include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
 #include <p101_cli/cli.h>
 #include <stdlib.h>
@@ -34,7 +33,8 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
 
     if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
     {
-        p101_doctor_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
+        args->show_help = true;
+        return;
     }
 
     while(
@@ -52,7 +52,8 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
         {
             case 'h':
             {
-                p101_doctor_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
+                args->show_help = true;
+                break;
             }
             case 'v':
             {
@@ -221,7 +222,7 @@ void p101_doctor_convert_arguments(const struct p101_env *env, struct p101_error
     (void)args;
 }
 
-_Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *err, const char *program_name, int exit_code, const char *message)
+void p101_doctor_usage(const struct p101_env *env, struct p101_error *err, const char *program_name, int exit_code, const char *message)
 {
     if(message != NULL)
     {
@@ -243,5 +244,5 @@ _Noreturn void p101_doctor_usage(const struct p101_env *env, struct p101_error *
     p101_fputs(env, err, "  -M <p101-module-map>    p101-module-map executable; default resolves through PATH\n", stderr);
     p101_fputs(env, err, "\nExample:\n", stderr);
     p101_fprintf(env, err, stderr, "  %s -o doctor -s src -s include -- ./my-program\n", program_name);
-    p101_exit(env, exit_code);
+    (void)exit_code;
 }
