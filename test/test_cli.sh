@@ -17,6 +17,14 @@ case "$name" in
   p101-module-map) status=${P101_DOCTOR_MODULE_STATUS:-${P101_DOCTOR_FAKE_STATUS:-0}} ;;
   *) status=${P101_DOCTOR_FAKE_STATUS:-0} ;;
 esac
+if [ "$name" = p101-module-map ]; then
+  for argument in "$@"; do
+    if [ "$argument" = -F ]; then
+      echo "p101-module-map received unsupported -F" >&2
+      exit 64
+    fi
+  done
+fi
 exit "$status"
 SCRIPT
 chmod +x "$fake"

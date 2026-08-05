@@ -195,11 +195,9 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     char   output_option[]     = "-o";
     char   facts_option[]      = "-i";
     char   compile_db_option[] = "-C";
-    char   fact_tool_option[]  = "-F";
     char   json_option[]       = "-j";
     char   facts_path[PATH_LEN];
     char   compile_db_path[PATH_LEN];
-    char   audit_path[PATH_LEN];
     size_t arg_index;
     int    ret_val;
 
@@ -208,7 +206,6 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     p101_doctor_copy_text(env, output_path, paths->module_report);
     p101_doctor_copy_text(env, json_path, paths->module_json);
     p101_doctor_copy_text(env, facts_path, paths->facts);
-    p101_doctor_copy_text(env, audit_path, args->p101_wrapper_audit);
     compile_db_path[0] = '\0';
     p101_doctor_copy_source_paths(env, args, source_paths);
 
@@ -231,8 +228,6 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
             tool_argv[arg_index++] = compile_db_option;
             tool_argv[arg_index++] = compile_db_path;
         }
-        tool_argv[arg_index++] = fact_tool_option;
-        tool_argv[arg_index++] = audit_path;
     }
     if(p101_error_has_error(err))
     {
@@ -264,8 +259,6 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
                     tool_argv[arg_index++] = compile_db_option;
                     tool_argv[arg_index++] = compile_db_path;
                 }
-                tool_argv[arg_index++] = fact_tool_option;
-                tool_argv[arg_index++] = audit_path;
             }
             arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
             tool_argv[arg_index] = NULL;
