@@ -166,7 +166,7 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
         tool_argv[index++] = compile_db_path;
         tool_argv[index++] = compile_only_option;
     }
-    if(p101_access(env, NULL, allow_file_path, F_OK) == 0)    // P101_ERROR_CONTRACT_ALLOW_NO_ERROR: absence means the project has no boundary ledger.
+    if(p101_access(env, P101_ERROR_OPTIONAL, allow_file_path, F_OK) == 0)    // P101_ERROR_OPTIONAL rationale: absence means the project has no boundary ledger.
     {
         tool_argv[index++] = allow_file_option;
         tool_argv[index++] = allow_file_path;

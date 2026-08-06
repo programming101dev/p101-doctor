@@ -55,7 +55,7 @@ static void write_artifact_fingerprint(const struct p101_env *env, struct p101_e
 {
     struct p101_tool_event_fingerprint fingerprint;
 
-    if(p101_access(env, NULL, path, F_OK) != 0)    // P101_ERROR_CONTRACT_ALLOW_NO_ERROR: missing artifacts are explicit receipt evidence.
+    if(p101_access(env, P101_ERROR_OPTIONAL, path, F_OK) != 0)    // P101_ERROR_OPTIONAL rationale: missing artifacts are explicit receipt evidence.
     {
         p101_fprintf(env, err, stream, "artifact.%s=missing path=%s\n", label, path);
         return;
