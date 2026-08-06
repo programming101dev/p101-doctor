@@ -29,30 +29,130 @@ static void        write_artifact_fingerprint(const struct p101_env *env, struct
 
 static bool doctor_result_has_findings(const struct arguments *args, const struct doctor_result *result)
 {
-    return ((!args->skip_source_contracts && (p101_doctor_status_has_findings(result->wrapper_status) || p101_doctor_status_has_findings(result->error_contract_status))) || p101_doctor_status_has_findings(result->module_status)) != 0;
+    int  p101_expression_result_16;
+    int  p101_expression_result_17;
+    int  p101_expression_result_18;
+    bool p101_call_result_19;
+    bool p101_call_result_20;
+    bool p101_call_result_21;
+    p101_expression_result_17 = 0;
+    if(!args->skip_source_contracts)
+    {
+        p101_call_result_19 = p101_doctor_status_has_findings(result->wrapper_status);
+        if(p101_call_result_19)
+        {
+            p101_expression_result_18 = 1;
+        }
+        else
+        {
+            p101_call_result_20 = p101_doctor_status_has_findings(result->error_contract_status);
+            if(p101_call_result_20)
+            {
+                p101_expression_result_18 = 1;
+            }
+            else
+            {
+                p101_expression_result_18 = 0;
+            }
+        }
+        if(p101_expression_result_18)
+        {
+            p101_expression_result_17 = 1;
+        }
+    }
+    if(p101_expression_result_17)
+    {
+        p101_expression_result_16 = 1;
+    }
+    else
+    {
+        p101_call_result_21 = p101_doctor_status_has_findings(result->module_status);
+        if(p101_call_result_21)
+        {
+            p101_expression_result_16 = 1;
+        }
+        else
+        {
+            p101_expression_result_16 = 0;
+        }
+    }
+    return p101_expression_result_16 != 0;
 }
 
 static bool doctor_result_has_trouble(const struct arguments *args, const struct doctor_result *result)
 {
-    return ((!args->skip_source_contracts && (!p101_doctor_status_is_acceptable(result->wrapper_status) || !p101_doctor_status_is_acceptable(result->error_contract_status))) || !p101_doctor_status_is_acceptable(result->module_status)) != 0;
+    int  p101_expression_result_22;
+    int  p101_expression_result_23;
+    int  p101_expression_result_24;
+    bool p101_call_result_25;
+    bool p101_call_result_26;
+    bool p101_call_result_27;
+    p101_expression_result_23 = 0;
+    if(!args->skip_source_contracts)
+    {
+        p101_call_result_25 = p101_doctor_status_is_acceptable(result->wrapper_status);
+        if(!p101_call_result_25)
+        {
+            p101_expression_result_24 = 1;
+        }
+        else
+        {
+            p101_call_result_26 = p101_doctor_status_is_acceptable(result->error_contract_status);
+            if(!p101_call_result_26)
+            {
+                p101_expression_result_24 = 1;
+            }
+            else
+            {
+                p101_expression_result_24 = 0;
+            }
+        }
+        if(p101_expression_result_24)
+        {
+            p101_expression_result_23 = 1;
+        }
+    }
+    if(p101_expression_result_23)
+    {
+        p101_expression_result_22 = 1;
+    }
+    else
+    {
+        p101_call_result_27 = p101_doctor_status_is_acceptable(result->module_status);
+        if(!p101_call_result_27)
+        {
+            p101_expression_result_22 = 1;
+        }
+        else
+        {
+            p101_expression_result_22 = 0;
+        }
+    }
+    return p101_expression_result_22 != 0;
 }
 
 static size_t doctor_result_completed_checks(const struct arguments *args, const struct doctor_result *result)
 {
+    bool   p101_call_result_1;
+    bool   p101_call_result_2;
+    bool   p101_call_result_3;
     size_t completed;
 
-    completed = 0U;
-    if(p101_doctor_status_is_acceptable(result->module_status))
+    completed          = 0U;
+    p101_call_result_1 = p101_doctor_status_is_acceptable(result->module_status);
+    if(p101_call_result_1)
     {
         completed++;
     }
     if(!args->skip_source_contracts)
     {
-        if(p101_doctor_status_is_acceptable(result->wrapper_status))
+        p101_call_result_2 = p101_doctor_status_is_acceptable(result->wrapper_status);
+        if(p101_call_result_2)
         {
             completed++;
         }
-        if(p101_doctor_status_is_acceptable(result->error_contract_status))
+        p101_call_result_3 = p101_doctor_status_is_acceptable(result->error_contract_status);
+        if(p101_call_result_3)
         {
             completed++;
         }
@@ -62,32 +162,46 @@ static size_t doctor_result_completed_checks(const struct arguments *args, const
 
 static void write_artifact_fingerprint(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, const char *path)
 {
+    int                                p101_call_result_4;
+    int                                p101_call_result_5;
     struct p101_tool_event_fingerprint fingerprint;
 
-    if(p101_access(env, P101_ERROR_OPTIONAL, path, F_OK) != 0)    // P101_ERROR_OPTIONAL rationale: missing artifacts are explicit receipt evidence.
+    p101_call_result_4 = p101_access(env, P101_ERROR_OPTIONAL, path, F_OK);
+    if(p101_call_result_4 != 0)    // P101_ERROR_OPTIONAL rationale: missing artifacts are explicit receipt evidence.
     {
         p101_fprintf(env, err, stream, "artifact.%s=missing path=%s\n", label, path);
-        return;
+        goto done;
     }
-    if(p101_tool_event_fingerprint_file(err, path, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_BYTES, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_RECORDS, &fingerprint) == 0)
+    p101_call_result_5 = p101_tool_event_fingerprint_file(err, path, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_BYTES, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_RECORDS, &fingerprint);
+    if(p101_call_result_5 == 0)
     {
         p101_fprintf(env, err, stream, "artifact.%s=present path=%s bytes=%zu records=%zu fnv1a64=%016" PRIx64 " final_newline=%d\n", label, path, fingerprint.bytes, fingerprint.records, fingerprint.fnv1a64, fingerprint.final_newline);
     }
+
+done:
+    return;
 }
 
 static const char *grade_for_status(int status)
 {
+    bool        p101_call_result_14;
+    bool        p101_call_result_6;
     const char *grade;
 
     grade = "trouble";
 
-    if(p101_doctor_status_is_clean(status))
+    p101_call_result_6 = p101_doctor_status_is_clean(status);
+    if(p101_call_result_6)
     {
         grade = "good";
     }
-    else if(p101_doctor_status_has_findings(status))
+    else
     {
-        grade = "needs work";
+        p101_call_result_14 = p101_doctor_status_has_findings(status);
+        if(p101_call_result_14)
+        {
+            grade = "needs work";
+        }
     }
 
     return grade;
@@ -95,13 +209,19 @@ static const char *grade_for_status(int status)
 
 static void write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status)
 {
-    p101_fprintf(env, err, stream, "- %s: `%s` (%s)\n", label, grade_for_status(status), p101_doctor_status_word(status));
+    const char *p101_call_result_7;
+    const char *p101_call_result_8;
+    p101_call_result_7 = grade_for_status(status);
+    p101_call_result_8 = p101_doctor_status_word(status);
+    p101_fprintf(env, err, stream, "- %s: `%s` (%s)\n", label, p101_call_result_7, p101_call_result_8);
 }
 
 static void write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
 {
+    int p101_call_result_9;
     P101_TRACE_SCOPE(env);
-    if(p101_record_write_json_string(stream, text == NULL ? "" : text) != 0)
+    p101_call_result_9 = p101_record_write_json_string(stream, text == NULL ? "" : text);
+    if(p101_call_result_9 != 0)
     {
         P101_ERROR_RAISE_ERRNO(err, errno == 0 ? EIO : errno);
     }
@@ -228,17 +348,24 @@ done:
 
 void p101_doctor_write_receipt_file(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths, const struct doctor_result *result)
 {
+    bool                               p101_call_result_15;
+    int                                p101_call_result_10;
+    size_t                             p101_call_result_11;
+    bool                               p101_call_result_12;
+    int                                p101_call_result_13;
     struct p101_tool_event_fingerprint fingerprint;
     struct p101_tool_run_receipt       receipt;
     FILE                              *stream;
 
     P101_TRACE_SCOPE(env);
-    stream = NULL;
-    if(p101_tool_event_fingerprint_file(err, paths->receipt, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_BYTES, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_RECORDS, &fingerprint) != 0)
+    stream              = NULL;
+    p101_call_result_10 = p101_tool_event_fingerprint_file(err, paths->receipt, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_BYTES, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_RECORDS, &fingerprint);
+    if(p101_call_result_10 != 0)
     {
         goto done;
     }
-    receipt = (struct p101_tool_run_receipt){
+    p101_call_result_11 = doctor_result_completed_checks(args, result);
+    receipt             = (struct p101_tool_run_receipt){
         .tool_name        = "p101-doctor",
         .tool_version     = "1.0.0",
         .input_schema     = "p101-doctor-evidence-receipt-v1",
@@ -249,7 +376,7 @@ void p101_doctor_write_receipt_file(const struct p101_env *env, struct p101_erro
         .failed_stage     = "",
         .first_diagnostic = "",
         .checks_attempted = 3U,
-        .checks_completed = doctor_result_completed_checks(args, result),
+        .checks_completed = p101_call_result_11,
         .does_not_prove   = "runtime correctness, complete wrapper instrumentation, third-party code, or unsupported compiler behavior",
     };
     if(args->skip_source_contracts)
@@ -257,29 +384,35 @@ void p101_doctor_write_receipt_file(const struct p101_env *env, struct p101_erro
         receipt.policy_identity  = "module-map-only";
         receipt.checks_attempted = 1U;
     }
-    if(doctor_result_has_trouble(args, result))
+    p101_call_result_12 = doctor_result_has_trouble(args, result);
+    if(p101_call_result_12)
     {
         receipt.outcome          = P101_TOOL_OUTCOME_TOOL_ERROR;
         receipt.failure_reason   = P101_TOOL_FAILURE_TOOL_ERROR;
         receipt.failed_stage     = "subtool";
         receipt.first_diagnostic = "at least one doctor subtool did not produce an acceptable result";
     }
-    else if(doctor_result_has_findings(args, result))
-    {
-        receipt.outcome          = P101_TOOL_OUTCOME_FINDINGS;
-        receipt.failure_reason   = P101_TOOL_FAILURE_FINDINGS_PRESENT;
-        receipt.failed_stage     = "source-contract";
-        receipt.first_diagnostic = "at least one doctor subtool reported findings";
-    }
     else
     {
-        receipt.outcome        = P101_TOOL_OUTCOME_CLEAN;
-        receipt.failure_reason = P101_TOOL_FAILURE_NONE;
+        p101_call_result_15 = doctor_result_has_findings(args, result);
+        if(p101_call_result_15)
+        {
+            receipt.outcome          = P101_TOOL_OUTCOME_FINDINGS;
+            receipt.failure_reason   = P101_TOOL_FAILURE_FINDINGS_PRESENT;
+            receipt.failed_stage     = "source-contract";
+            receipt.first_diagnostic = "at least one doctor subtool reported findings";
+        }
+        else
+        {
+            receipt.outcome        = P101_TOOL_OUTCOME_CLEAN;
+            receipt.failure_reason = P101_TOOL_FAILURE_NONE;
+        }
     }
     stream = p101_fopen(env, err, paths->tool_receipt, "w");
     if(stream != NULL)
     {
-        (void)p101_tool_run_receipt_write_json(err, stream, &receipt, &fingerprint);
+        p101_call_result_13 = p101_tool_run_receipt_write_json(err, stream, &receipt, &fingerprint);
+        (void)p101_call_result_13;
     }
 
 done:

@@ -27,6 +27,25 @@ static int run_tool_capture(const struct p101_env *env, struct p101_error *err, 
 
 int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
+    int                  p101_expression_result_15;
+    int                  p101_expression_result_16;
+    int                  p101_expression_result_17;
+    bool                 p101_call_result_18;
+    bool                 p101_call_result_19;
+    bool                 p101_call_result_20;
+    int                  p101_expression_result_21;
+    int                  p101_expression_result_22;
+    int                  p101_expression_result_23;
+    bool                 p101_call_result_24;
+    bool                 p101_call_result_25;
+    bool                 p101_call_result_26;
+    bool                 p101_call_result_1;
+    bool                 p101_call_result_2;
+    bool                 p101_call_result_3;
+    bool                 p101_call_result_4;
+    bool                 p101_call_result_5;
+    bool                 p101_call_result_6;
+    bool                 p101_call_result_7;
     struct doctor_paths  paths;
     struct doctor_result result;
     int                  ret_val;
@@ -38,14 +57,16 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
 
     p101_doctor_make_paths(env, err, args, &paths);
 
-    if(p101_error_has_error(err))
+    p101_call_result_1 = p101_error_has_error(err);
+    if(p101_call_result_1)
     {
         goto done;
     }
 
     p101_doctor_create_dir(env, err, paths.dir);
 
-    if(p101_error_has_error(err))
+    p101_call_result_2 = p101_error_has_error(err);
+    if(p101_call_result_2)
     {
         goto done;
     }
@@ -53,7 +74,8 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
     p101_doctor_write_command_file(env, err, paths.command, args->command_argv);
     p101_doctor_write_manifest_file(env, err, paths.manifest, args, &paths);
 
-    if(p101_error_has_error(err))
+    p101_call_result_3 = p101_error_has_error(err);
+    if(p101_call_result_3)
     {
         goto done;
     }
@@ -62,14 +84,16 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
     {
         result.wrapper_status = run_p101_wrapper_audit(env, err, args, &paths);
 
-        if(p101_error_has_error(err))
+        p101_call_result_4 = p101_error_has_error(err);
+        if(p101_call_result_4)
         {
             goto done;
         }
 
         result.error_contract_status = run_p101_error_contract(env, err, args, &paths);
 
-        if(p101_error_has_error(err))
+        p101_call_result_5 = p101_error_has_error(err);
+        if(p101_call_result_5)
         {
             goto done;
         }
@@ -77,7 +101,8 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
 
     result.module_status = run_p101_module_map(env, err, args, &paths);
 
-    if(p101_error_has_error(err))
+    p101_call_result_6 = p101_error_has_error(err);
+    if(p101_call_result_6)
     {
         goto done;
     }
@@ -87,20 +112,103 @@ int p101_doctor_run(const struct p101_env *env, struct p101_error *err, const st
     p101_doctor_write_evidence_receipt_file(env, err, args, &paths);
     p101_doctor_write_receipt_file(env, err, args, &paths, &result);
 
-    if(p101_error_has_error(err))
+    p101_call_result_7 = p101_error_has_error(err);
+    if(p101_call_result_7)
     {
         goto done;
     }
 
     p101_printf(env, err, "p101-doctor: wrote doctor report to %s\n", paths.dir);
 
-    if((!args->skip_source_contracts && (!p101_doctor_status_is_acceptable(result.wrapper_status) || !p101_doctor_status_is_acceptable(result.error_contract_status))) || !p101_doctor_status_is_acceptable(result.module_status))
+    p101_expression_result_16 = 0;
+    if(!args->skip_source_contracts)
+    {
+        p101_call_result_18 = p101_doctor_status_is_acceptable(result.wrapper_status);
+        if(!p101_call_result_18)
+        {
+            p101_expression_result_17 = 1;
+        }
+        else
+        {
+            p101_call_result_19 = p101_doctor_status_is_acceptable(result.error_contract_status);
+            if(!p101_call_result_19)
+            {
+                p101_expression_result_17 = 1;
+            }
+            else
+            {
+                p101_expression_result_17 = 0;
+            }
+        }
+        if(p101_expression_result_17)
+        {
+            p101_expression_result_16 = 1;
+        }
+    }
+    if(p101_expression_result_16)
+    {
+        p101_expression_result_15 = 1;
+    }
+    else
+    {
+        p101_call_result_20 = p101_doctor_status_is_acceptable(result.module_status);
+        if(!p101_call_result_20)
+        {
+            p101_expression_result_15 = 1;
+        }
+        else
+        {
+            p101_expression_result_15 = 0;
+        }
+    }
+    if(p101_expression_result_15)
     {
         ret_val = EXIT_TROUBLE;
         goto done;
     }
 
-    if((!args->skip_source_contracts && (p101_doctor_status_has_findings(result.wrapper_status) || p101_doctor_status_has_findings(result.error_contract_status))) || p101_doctor_status_has_findings(result.module_status))
+    p101_expression_result_22 = 0;
+    if(!args->skip_source_contracts)
+    {
+        p101_call_result_24 = p101_doctor_status_has_findings(result.wrapper_status);
+        if(p101_call_result_24)
+        {
+            p101_expression_result_23 = 1;
+        }
+        else
+        {
+            p101_call_result_25 = p101_doctor_status_has_findings(result.error_contract_status);
+            if(p101_call_result_25)
+            {
+                p101_expression_result_23 = 1;
+            }
+            else
+            {
+                p101_expression_result_23 = 0;
+            }
+        }
+        if(p101_expression_result_23)
+        {
+            p101_expression_result_22 = 1;
+        }
+    }
+    if(p101_expression_result_22)
+    {
+        p101_expression_result_21 = 1;
+    }
+    else
+    {
+        p101_call_result_26 = p101_doctor_status_has_findings(result.module_status);
+        if(p101_call_result_26)
+        {
+            p101_expression_result_21 = 1;
+        }
+        else
+        {
+            p101_expression_result_21 = 0;
+        }
+    }
+    if(p101_expression_result_21)
     {
         ret_val = EXIT_FINDINGS;
         goto done;
@@ -140,6 +248,9 @@ static int run_p101_error_contract(const struct p101_env *env, struct p101_error
 
 static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths)
 {
+    bool   p101_call_result_8;
+    int    p101_call_result_9;
+    bool   p101_call_result_10;
     char  *tool_argv[MAX_SOURCE_PATHS + STATIC_TOOL_RESERVE];
     char   audit_path[PATH_LEN];
     char   facts_path[PATH_LEN];
@@ -169,18 +280,21 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
     tool_argv[index++] = input_manifest_option;
     tool_argv[index++] = input_manifest_path;
     tool_argv[index++] = portability_option;
-    if(p101_doctor_resolve_compile_database(env, err, args, compile_db_path))
+    p101_call_result_8 = p101_doctor_resolve_compile_database(env, err, args, compile_db_path);
+    if(p101_call_result_8)
     {
         tool_argv[index++] = compile_db_option;
         tool_argv[index++] = compile_db_path;
         tool_argv[index++] = compile_only_option;
     }
-    if(p101_access(env, P101_ERROR_OPTIONAL, allow_file_path, F_OK) == 0)    // P101_ERROR_OPTIONAL rationale: absence means the project has no boundary ledger.
+    p101_call_result_9 = p101_access(env, P101_ERROR_OPTIONAL, allow_file_path, F_OK);
+    if(p101_call_result_9 == 0)    // P101_ERROR_OPTIONAL rationale: absence means the project has no boundary ledger.
     {
         tool_argv[index++] = allow_file_option;
         tool_argv[index++] = allow_file_path;
     }
-    if(p101_error_has_error(err))
+    p101_call_result_10 = p101_error_has_error(err);
+    if(p101_call_result_10)
     {
         ret_val = EXIT_TROUBLE;
     }
@@ -196,6 +310,9 @@ static int run_p101_wrapper_audit(const struct p101_env *env, struct p101_error 
 
 static int run_p101_module_map(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const struct doctor_paths *paths)
 {
+    bool   p101_call_result_11;
+    bool   p101_call_result_12;
+    bool   p101_call_result_13;
     char  *tool_argv[MAX_SOURCE_PATHS + MODULE_MAP_RESERVE];
     char   module_path[PATH_LEN];
     char   output_path[PATH_LEN];
@@ -232,13 +349,15 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
     }
     else
     {
-        if(p101_doctor_resolve_compile_database(env, err, args, compile_db_path))
+        p101_call_result_11 = p101_doctor_resolve_compile_database(env, err, args, compile_db_path);
+        if(p101_call_result_11)
         {
             tool_argv[arg_index++] = compile_db_option;
             tool_argv[arg_index++] = compile_db_path;
         }
     }
-    if(p101_error_has_error(err))
+    p101_call_result_12 = p101_error_has_error(err);
+    if(p101_call_result_12)
     {
         ret_val = EXIT_TROUBLE;
     }
@@ -247,8 +366,9 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
         arg_index            = p101_doctor_append_source_paths(tool_argv, arg_index, source_paths, args->source_count);
         tool_argv[arg_index] = NULL;
 
-        ret_val = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
-        if(p101_doctor_status_is_acceptable(ret_val))
+        ret_val             = run_tool_capture(env, err, tool_argv, paths->module_stdout, paths->module_stderr);
+        p101_call_result_13 = p101_doctor_status_is_acceptable(ret_val);
+        if(p101_call_result_13)
         {
             int json_status;
 
@@ -283,6 +403,7 @@ static int run_p101_module_map(const struct p101_env *env, struct p101_error *er
 
 static int run_tool_capture(const struct p101_env *env, struct p101_error *err, char *const tool_argv[], const char *stdout_path, const char *stderr_path)
 {
+    int                          p101_call_result_14;
     struct p101_tool_run_options options;
 
     P101_TRACE_SCOPE(env);
@@ -292,5 +413,6 @@ static int run_tool_capture(const struct p101_env *env, struct p101_error *err, 
     options.output_mode         = REPORT_FILE_MODE;
     options.child_setup         = NULL;
     options.child_setup_context = NULL;
-    return p101_tool_run_capture(env, err, tool_argv, &options);
+    p101_call_result_14         = p101_tool_run_capture(env, err, tool_argv, &options);
+    return p101_call_result_14;
 }

@@ -22,7 +22,11 @@ void p101_doctor_arguments_init(const struct p101_env *env, struct arguments *ar
 
 void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *err, int argc, char *argv[], struct arguments *args)
 {
-    int opt;
+    int  p101_expression_result_3;
+    int  p101_call_result_4;
+    int  p101_call_result_1;
+    bool p101_call_result_2;
+    int  opt;
 #ifdef P101_DOCTOR_TESTING
     const char *forced_option;
 #endif
@@ -33,20 +37,44 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
     forced_option = getenv("P101_DOCTOR_TEST_OPTION");
 #endif
 
-    if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
+    p101_expression_result_3 = 0;
+    if(argc == 2)
+    {
+        p101_call_result_4 = p101_strcmp(env, argv[1], "--help");
+        if(p101_call_result_4 == 0)
+        {
+            p101_expression_result_3 = 1;
+        }
+    }
+    if(p101_expression_result_3)
     {
         args->show_help = true;
-        return;
+        goto done;
     }
 
-    while(
-#ifdef P101_DOCTOR_TESTING
-        (opt = (forced_option == NULL) ? p101_getopt(env, argc, argv, ":hvxo:s:C:A:E:M:") : (unsigned char)*forced_option) != -1 &&
-#else
-        (opt = p101_getopt(env, argc, argv, ":hvxo:s:C:A:E:M:")) != -1 &&
-#endif
-        p101_error_has_no_error(err))
+    for(;;)
     {
+#ifdef P101_DOCTOR_TESTING
+        if(forced_option == NULL)
+        {
+            opt = p101_getopt(env, argc, argv, ":hvxo:s:C:A:E:M:");
+        }
+        else
+        {
+            opt = (unsigned char)*forced_option;
+        }
+#else
+        opt = p101_getopt(env, argc, argv, ":hvxo:s:C:A:E:M:");
+#endif
+        if(opt == -1)
+        {
+            break;
+        }
+        p101_call_result_2 = p101_error_has_no_error(err);
+        if(!p101_call_result_2)
+        {
+            break;
+        }
 #ifdef P101_DOCTOR_TESTING
         forced_option = NULL;
 #endif
@@ -122,7 +150,8 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             {
                 char msg[MSG_LEN];
 
-                if(p101_isprint(env, optopt))
+                p101_call_result_1 = p101_isprint(env, optopt);
+                if(p101_call_result_1)
                 {
                     p101_snprintf(env, err, msg, sizeof(msg), "Unknown option '-%c'.", optopt);
                 }
@@ -137,19 +166,33 @@ void p101_doctor_parse_arguments(const struct p101_env *env, struct p101_error *
             default:
             {
                 char msg[MSG_LEN];
+                int  option_character;
 
-                p101_snprintf(env, err, msg, sizeof(msg), "Internal error: unhandled option '-%c' returned by getopt.", p101_isprint(env, opt) ? opt : '?');
+                p101_call_result_1 = p101_isprint(env, opt);
+                if(p101_call_result_1)
+                {
+                    option_character = opt;
+                }
+                else
+                {
+                    option_character = '?';
+                }
+                p101_snprintf(env, err, msg, sizeof(msg), "Internal error: unhandled option '-%c' returned by getopt.", option_character);
                 P101_ERROR_RAISE_USER(err, msg, ERR_USAGE);
                 break;
             }
         }
     }
 
-    if(p101_error_has_no_error(err))
+    p101_call_result_2 = p101_error_has_no_error(err);
+    if(p101_call_result_2)
     {
         args->command_argv = &argv[optind];
         args->command_argc = argc - optind;
     }
+
+done:
+    return;
 }
 
 void p101_doctor_check_arguments(const struct p101_env *env, struct p101_error *err, const struct arguments *args)

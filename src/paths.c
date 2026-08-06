@@ -29,11 +29,13 @@ static void join_path(const struct p101_env *env, struct p101_error *err, char d
 
 void p101_doctor_make_paths(const struct p101_env *env, struct p101_error *err, const struct arguments *args, struct doctor_paths *paths)
 {
+    pid_t p101_call_result_1;
     P101_TRACE_SCOPE(env);
 
     if(args->doctor_dir == NULL)
     {
-        p101_snprintf(env, err, paths->dir, sizeof(paths->dir), "%s-%ld", DEFAULT_DOCTOR_PREFIX, (long)p101_getpid(env));
+        p101_call_result_1 = p101_getpid(env);
+        p101_snprintf(env, err, paths->dir, sizeof(paths->dir), "%s-%ld", DEFAULT_DOCTOR_PREFIX, (long)p101_call_result_1);
     }
     else
     {
