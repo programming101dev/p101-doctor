@@ -3,8 +3,26 @@
 #include "errors.h"
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
-#include <p101_filesystem/filesystem.h>
-#include <p101_process/process.h>
+#include <p101_filesystem/p101_dirent.h>
+#include <p101_filesystem/p101_fnmatch.h>
+#include <p101_filesystem/p101_ftw.h>
+#include <p101_filesystem/p101_glob.h>
+#include <p101_filesystem/p101_libgen.h>
+#include <p101_filesystem/p101_stdio.h>
+#include <p101_filesystem/p101_stdlib.h>
+#include <p101_filesystem/p101_unistd.h>
+#include <p101_filesystem/sys/p101_stat.h>
+#include <p101_filesystem/sys/p101_statvfs.h>
+#include <p101_process/p101_sched.h>
+#include <p101_process/p101_setjmp.h>
+#include <p101_process/p101_signal.h>
+#include <p101_process/p101_spawn.h>
+#include <p101_process/p101_stdio.h>
+#include <p101_process/p101_stdlib.h>
+#include <p101_process/p101_unistd.h>
+#include <p101_process/sys/p101_resource.h>
+#include <p101_process/sys/p101_times.h>
+#include <p101_process/sys/p101_wait.h>
 #include <stdio.h>
 
 static void join_path(const struct p101_env *env, struct p101_error *err, char destination[PATH_LEN], const char *dir, const char *name);
