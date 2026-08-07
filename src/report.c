@@ -366,18 +366,18 @@ void p101_doctor_write_receipt_file(const struct p101_env *env, struct p101_erro
     }
     p101_call_result_11 = doctor_result_completed_checks(args, result);
     receipt             = (struct p101_tool_run_receipt){
-                    .tool_name        = "p101-doctor",
-                    .tool_version     = "1.0.0",
-                    .input_schema     = "p101-doctor-evidence-receipt-v1",
-                    .input_identity   = paths->receipt,
-                    .policy_schema    = "p101-doctor-policy-v1",
-                    .policy_identity  = "full-source-contracts",
-                    .run_identity     = paths->dir,
-                    .failed_stage     = "",
-                    .first_diagnostic = "",
-                    .checks_attempted = 3U,
-                    .checks_completed = p101_call_result_11,
-                    .does_not_prove   = "runtime correctness, complete wrapper instrumentation, third-party code, or unsupported compiler behavior",
+        .tool_name        = "p101-doctor",
+        .tool_version     = "1.0.0",
+        .input_schema     = "p101-doctor-evidence-receipt-v1",
+        .input_identity   = paths->receipt,
+        .policy_schema    = "p101-doctor-policy-v1",
+        .policy_identity  = "full-source-contracts",
+        .run_identity     = paths->dir,
+        .failed_stage     = "",
+        .first_diagnostic = "",
+        .checks_attempted = 3U,
+        .checks_completed = p101_call_result_11,
+        .does_not_prove   = "runtime correctness, complete wrapper instrumentation, third-party code, or unsupported compiler behavior",
     };
     if(args->skip_source_contracts)
     {
