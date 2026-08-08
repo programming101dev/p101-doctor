@@ -19,25 +19,23 @@
 #include <p101_tool_event/receipt.h>
 #include <stdio.h>
 
-static void        write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status);
-static const char *grade_for_status(int status);
-static void        write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
-static bool        doctor_result_has_findings(const struct arguments *args, const struct doctor_result *result);
-static bool        doctor_result_has_trouble(const struct arguments *args, const struct doctor_result *result);
-static size_t      doctor_result_completed_checks(const struct arguments *args, const struct doctor_result *result);
-static void        write_artifact_fingerprint(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, const char *path);
+static void   write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status);
+static void   write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
+static bool   doctor_result_has_findings(const struct arguments *args, const struct doctor_result *result);
+static bool   doctor_result_has_trouble(const struct arguments *args, const struct doctor_result *result);
+static size_t doctor_result_completed_checks(const struct arguments *args, const struct doctor_result *result);
+static void   write_artifact_fingerprint(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, const char *path);
 
 static bool doctor_result_has_findings(const struct arguments *args, const struct doctor_result *result)
 {
-    int  p101_expression_result_16;
-    int  p101_expression_result_17;
-    int  p101_expression_result_18;
-    bool p101_call_result_19;
-    bool p101_call_result_20;
-    bool p101_call_result_21;
+    int p101_expression_result_16;
+    int p101_expression_result_17;
     p101_expression_result_17 = 0;
     if(!args->skip_source_contracts)
     {
+        int  p101_expression_result_18;
+        bool p101_call_result_19;
+
         p101_call_result_19 = p101_doctor_status_has_findings(result->wrapper_status);
         if(p101_call_result_19)
         {
@@ -45,6 +43,8 @@ static bool doctor_result_has_findings(const struct arguments *args, const struc
         }
         else
         {
+            bool p101_call_result_20;
+
             p101_call_result_20 = p101_doctor_status_has_findings(result->error_contract_status);
             if(p101_call_result_20)
             {
@@ -66,6 +66,8 @@ static bool doctor_result_has_findings(const struct arguments *args, const struc
     }
     else
     {
+        bool p101_call_result_21;
+
         p101_call_result_21 = p101_doctor_status_has_findings(result->module_status);
         if(p101_call_result_21)
         {
@@ -81,15 +83,14 @@ static bool doctor_result_has_findings(const struct arguments *args, const struc
 
 static bool doctor_result_has_trouble(const struct arguments *args, const struct doctor_result *result)
 {
-    int  p101_expression_result_22;
-    int  p101_expression_result_23;
-    int  p101_expression_result_24;
-    bool p101_call_result_25;
-    bool p101_call_result_26;
-    bool p101_call_result_27;
+    int p101_expression_result_22;
+    int p101_expression_result_23;
     p101_expression_result_23 = 0;
     if(!args->skip_source_contracts)
     {
+        int  p101_expression_result_24;
+        bool p101_call_result_25;
+
         p101_call_result_25 = p101_doctor_status_is_acceptable(result->wrapper_status);
         if(!p101_call_result_25)
         {
@@ -97,6 +98,8 @@ static bool doctor_result_has_trouble(const struct arguments *args, const struct
         }
         else
         {
+            bool p101_call_result_26;
+
             p101_call_result_26 = p101_doctor_status_is_acceptable(result->error_contract_status);
             if(!p101_call_result_26)
             {
@@ -118,6 +121,8 @@ static bool doctor_result_has_trouble(const struct arguments *args, const struct
     }
     else
     {
+        bool p101_call_result_27;
+
         p101_call_result_27 = p101_doctor_status_is_acceptable(result->module_status);
         if(!p101_call_result_27)
         {
@@ -134,8 +139,6 @@ static bool doctor_result_has_trouble(const struct arguments *args, const struct
 static size_t doctor_result_completed_checks(const struct arguments *args, const struct doctor_result *result)
 {
     bool   p101_call_result_1;
-    bool   p101_call_result_2;
-    bool   p101_call_result_3;
     size_t completed;
 
     completed          = 0U;
@@ -146,6 +149,9 @@ static size_t doctor_result_completed_checks(const struct arguments *args, const
     }
     if(!args->skip_source_contracts)
     {
+        bool p101_call_result_2;
+        bool p101_call_result_3;
+
         p101_call_result_2 = p101_doctor_status_is_acceptable(result->wrapper_status);
         if(p101_call_result_2)
         {
@@ -169,49 +175,24 @@ static void write_artifact_fingerprint(const struct p101_env *env, struct p101_e
     p101_call_result_4 = p101_access(env, P101_ERROR_OPTIONAL, path, F_OK);
     if(p101_call_result_4 != 0)    // P101_ERROR_OPTIONAL rationale: missing artifacts are explicit receipt evidence.
     {
-        p101_fprintf(env, err, stream, "artifact.%s=missing path=%s\n", label, path);
+        p101_fprintf(env, err, stream, "artifact.%s=missing\tpath=%s\n", label, path);
         goto done;
     }
     p101_call_result_5 = p101_tool_event_fingerprint_file(err, path, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_BYTES, P101_TOOL_EVENT_RECEIPT_DEFAULT_MAX_RECORDS, &fingerprint);
     if(p101_call_result_5 == 0)
     {
-        p101_fprintf(env, err, stream, "artifact.%s=present path=%s bytes=%zu records=%zu fnv1a64=%016" PRIx64 " final_newline=%d\n", label, path, fingerprint.bytes, fingerprint.records, fingerprint.fnv1a64, fingerprint.final_newline);
+        p101_fprintf(env, err, stream, "artifact.%s=present\tpath=%s\tbytes=%zu\trecords=%zu\tfnv1a64=%016" PRIx64 "\tfinal_newline=%d\n", label, path, fingerprint.bytes, fingerprint.records, fingerprint.fnv1a64, fingerprint.final_newline);
     }
 
 done:
     return;
 }
 
-static const char *grade_for_status(int status)
-{
-    bool        p101_call_result_14;
-    bool        p101_call_result_6;
-    const char *grade;
-
-    grade = "trouble";
-
-    p101_call_result_6 = p101_doctor_status_is_clean(status);
-    if(p101_call_result_6)
-    {
-        grade = "good";
-    }
-    else
-    {
-        p101_call_result_14 = p101_doctor_status_has_findings(status);
-        if(p101_call_result_14)
-        {
-            grade = "needs work";
-        }
-    }
-
-    return grade;
-}
-
 static void write_grade_line(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status)
 {
     const char *p101_call_result_7;
     const char *p101_call_result_8;
-    p101_call_result_7 = grade_for_status(status);
+    p101_call_result_7 = p101_doctor_status_grade(status);
     p101_call_result_8 = p101_doctor_status_word(status);
     p101_fprintf(env, err, stream, "- %s: `%s` (%s)\n", label, p101_call_result_7, p101_call_result_8);
 }
@@ -320,6 +301,11 @@ void p101_doctor_write_evidence_receipt_file(const struct p101_env *env, struct 
     {
         goto done;
     }
+    /*
+     * Each artifact line is a tab-delimited sequence of key=value groups so a
+     * reader can split the fields unambiguously even when a caller-supplied
+     * output path contains spaces.
+     */
     p101_fputs(env, err, "schema=p101-doctor-evidence-receipt-v1\n", stream);
     write_artifact_fingerprint(env, err, stream, "command", paths->command);
     write_artifact_fingerprint(env, err, stream, "manifest", paths->manifest);

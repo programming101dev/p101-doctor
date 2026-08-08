@@ -18,7 +18,6 @@ bool p101_doctor_status_is_acceptable(int status)
 {
     int  p101_expression_result_5;
     bool p101_call_result_6;
-    bool p101_call_result_7;
     p101_call_result_6 = p101_doctor_status_is_clean(status);
     if(p101_call_result_6)
     {
@@ -26,6 +25,8 @@ bool p101_doctor_status_is_acceptable(int status)
     }
     else
     {
+        bool p101_call_result_7;
+
         p101_call_result_7 = p101_doctor_status_has_findings(status);
         if(p101_call_result_7)
         {
@@ -39,36 +40,90 @@ bool p101_doctor_status_is_acceptable(int status)
     return p101_expression_result_5 != 0;
 }
 
-const char *p101_doctor_status_word(int status)
+/*
+ * The single classification of a child exit status. Every human-facing word
+ * (the status word and the report grade) is derived from this one cascade so
+ * the two vocabularies can never drift apart.
+ */
+enum doctor_status_class
 {
-    bool        p101_call_result_4;
-    bool        p101_call_result_1;
-    const char *word;
+    DOCTOR_STATUS_CLASS_CLEAN = 0,
+    DOCTOR_STATUS_CLASS_FINDINGS,
+    DOCTOR_STATUS_CLASS_TROUBLE
+};
 
-    word = "trouble";
+static enum doctor_status_class classify_status(int status);
 
-    p101_call_result_1 = p101_doctor_status_is_clean(status);
-    if(p101_call_result_1)
+static enum doctor_status_class classify_status(int status)
+{
+    bool p101_call_result_8;
+    enum doctor_status_class class;
+
+    class = DOCTOR_STATUS_CLASS_TROUBLE;
+
+    p101_call_result_8 = p101_doctor_status_is_clean(status);
+    if(p101_call_result_8)
     {
-        word = "clean";
+        class = DOCTOR_STATUS_CLASS_CLEAN;
     }
     else
     {
-        p101_call_result_4 = p101_doctor_status_has_findings(status);
-        if(p101_call_result_4)
+        bool p101_call_result_9;
+
+        p101_call_result_9 = p101_doctor_status_has_findings(status);
+        if(p101_call_result_9)
         {
-            word = "findings";
+            class = DOCTOR_STATUS_CLASS_FINDINGS;
         }
+    }
+
+    return class;
+}
+
+const char *p101_doctor_status_word(int status)
+{
+    enum doctor_status_class p101_call_result_1;
+    const char              *word;
+
+    p101_call_result_1 = classify_status(status);
+    word               = "trouble";
+    if(p101_call_result_1 == DOCTOR_STATUS_CLASS_CLEAN)
+    {
+        word = "clean";
+    }
+    else if(p101_call_result_1 == DOCTOR_STATUS_CLASS_FINDINGS)
+    {
+        word = "findings";
     }
 
     return word;
 }
 
+const char *p101_doctor_status_grade(int status)
+{
+    enum doctor_status_class p101_call_result_10;
+    const char              *grade;
+
+    p101_call_result_10 = classify_status(status);
+    grade               = "trouble";
+    if(p101_call_result_10 == DOCTOR_STATUS_CLASS_CLEAN)
+    {
+        grade = "good";
+    }
+    else if(p101_call_result_10 == DOCTOR_STATUS_CLASS_FINDINGS)
+    {
+        grade = "needs work";
+    }
+
+    return grade;
+}
+
 void p101_doctor_print_status_markdown(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status)
 {
-    const char *p101_call_result_2;
     if(WIFEXITED(status))
     {
+        const char *p101_call_result_2;
+
         p101_call_result_2 = p101_doctor_status_word(status);
         p101_fprintf(env, err, stream, "| %s | %s (exit %d) |\n", label, p101_call_result_2, WEXITSTATUS(status));
     }
@@ -84,9 +139,10 @@ void p101_doctor_print_status_markdown(const struct p101_env *env, struct p101_e
 
 void p101_doctor_print_status_json(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *label, int status)
 {
-    const char *p101_call_result_3;
     if(WIFEXITED(status))
     {
+        const char *p101_call_result_3;
+
         p101_call_result_3 = p101_doctor_status_word(status);
         p101_fprintf(env, err, stream, "    \"%s\": {\"kind\": \"exit\", \"code\": %d, \"result\": \"%s\"}", label, WEXITSTATUS(status), p101_call_result_3);
     }
